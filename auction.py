@@ -38,10 +38,11 @@ class AucBot:
         self.codes = dict()
 
     async def start_handler(self, message, state):
-        # await start_auction()
         await state.finish()
+        chat_id = message.chat.id
         tg_id = message.from_user.id
         blocked_users = self.db.get_blocked_users()
+        print(tg_id)
         if tg_id in blocked_users:
             await self.bot.send_message(
                 chat_id=tg_id,

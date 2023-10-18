@@ -782,6 +782,18 @@ class Database:
 
         self.conn.commit()
 
+    def get_all_codes(self):
+        codes = self.cur.execute(
+            """
+            SELECT code FROM lots
+            """
+        ).fetchall()
+
+        if codes is None:
+            return []
+        codes = [code[0] for code in codes]
+        return codes
+
     def get_lot(self, code):
         lots = self.cur.execute(
             f"""

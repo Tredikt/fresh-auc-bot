@@ -65,6 +65,11 @@ with open("regions.txt", "r", encoding="UTF-8") as file:
 admin_markup = InlineKeyboardMarkup()
 admin_markup.add(
     InlineKeyboardButton(
+        text="Выгрузить лоты",
+        callback_data="upload_lots"
+    )
+).add(
+    InlineKeyboardButton(
         text="Добавить партнёра",
         callback_data="add_partner"
     )

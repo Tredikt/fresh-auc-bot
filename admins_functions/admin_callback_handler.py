@@ -9,6 +9,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from .users_statistics import get_users_statistics
 from .lots_statistics import get_lots_statistics
 from .auction_statistics import get_auction_statistics
+from .upload_lots import upload_lots
 from config import channel_id
 import asyncio
 
@@ -243,6 +244,9 @@ async def admin_callback_handler(call, state):
                 text=admin_text,
                 reply_markup=admin_markup
             )
+
+        elif callback == "upload_lots":
+            await upload_lots(chat=chat)
 
         elif callback == "add_partner":
             await bot.delete_message(
