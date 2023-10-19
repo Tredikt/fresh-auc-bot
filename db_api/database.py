@@ -11,6 +11,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS users(
                 tg_id INTEGER,
                 phone TEXT,
+                email TEXT,
                 fullname TEXT,
                 gender TEXT,
                 age INTEGER,
@@ -45,6 +46,7 @@ class Database:
                 name TEXT,
                 model TEXT,
                 code TEXT PRIMARY KEY,
+                storage TEXT,
                 season TEXT,
                 tires TEXT,
                 disks TEXT,
@@ -371,6 +373,15 @@ class Database:
         )
         self.conn.commit()
 
+    def delete_now_lots(self, code):
+        self.cur.execute(
+            f"""
+                    DELETE FROM now_lots
+                    WHERE code='{code}'
+                    """
+        )
+        self.conn.commit()
+
     def get_bids_codes(self, tg_id):
         bids_codes = self.cur.execute(
             f"""
@@ -553,7 +564,7 @@ class Database:
 
         return users
 
-    def add_user(self, phone, tg_id, fullname, gender, age, avatar_name, region, company):
+    def add_user(self, phone, email, tg_id, fullname, gender, age, avatar_name, region, company):
         self.cur.execute(
             f"""
             DELETE FROM users
@@ -562,12 +573,12 @@ class Database:
         )
 
         with open(avatar_name, "rb") as avatar:
-            info = (phone, tg_id, fullname, gender, age, avatar.read(), region, company, 0)
+            info = (phone, email, tg_id, fullname, gender, age, avatar.read(), region, company, 0)
 
             self.cur.execute(
                 """
                 INSERT INTO users
-                (phone, tg_id, fullname, gender, age, avatar, region, company, blocked)
+                (phone, email, tg_id, fullname, gender, age, avatar, region, company, blocked)
                 VALUES(?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 info
@@ -767,13 +778,13 @@ class Database:
         phones = [elem[0] for elem in phones]
         return phones
 
-    def add_lot(self, name, model, code, season, tires, disks, price, photo):
+    def add_lot(self, name, model, code, storage, season, tires, disks, price, photo):
         status = "stock"
-        info = (name, model, code, season, tires, disks, price, photo, status)
+        info = (name, model, code, storage, season, tires, disks, price, photo, status)
         self.cur.execute(
             """
             INSERT OR REPLACE INTO lots
-            (name, model, code, season, tires, disks, price, photo, status)
+            (name, model, code, storage, season, tires, disks, price, photo, status)
             VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -886,7 +897,7 @@ class Database:
     def get_three_lots(self):
         three_lots = self.cur.execute(
             f"""
-            SELECT name, model, code, season, tires, disks, price, photo FROM lots
+            SELECT name, model, code, storage, season, tires, disks, price, photo FROM lots
             WHERE status="stock"
             LIMIT 3
             """

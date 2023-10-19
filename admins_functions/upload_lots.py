@@ -23,6 +23,7 @@ async def upload_lots(chat: int):
     lots_codes = list()
 
     for data in response.json()["rows"]:
+        print(data)
         try:
             name = data["name"]
 
@@ -42,6 +43,11 @@ async def upload_lots(chat: int):
                     status = attributes[5]["value"]
                     if status in ["Отличное", "Плохое", "Среднее", "Хорошее"]:
                         status = attributes[6]["value"]
+                    storage = None
+                    for num in range(5, 9):
+                        if attributes[num]["name"] == "Склад":
+                            storage = attributes[num]["value"]
+                            break
                     photo_url = data["images"]["meta"]["href"]
                     photo_download = request("GET", photo_url,
                                              headers={"Authorization": f"Bearer {access_token}"}).json()
@@ -49,20 +55,21 @@ async def upload_lots(chat: int):
                     if len(photo_download["rows"]) > 0:
                         photo = request("GET", photo_download["rows"][0]["meta"]["downloadHref"],
                                         headers={"Authorization": f"Bearer {access_token}"}).content
-                        if status == "Принят" and price is not None and price > 0 and str(code) not in codes:
+                        if status == "Принят" and price is not None and price > 0 and str(
+                                code) not in codes and storage is not None:
                             db.add_lot(
                                 name=name,
                                 code=code,
                                 model=brand_model,
                                 season=season,
+                                storage=storage,
                                 tires=tire_parameters,
                                 disks=disk_parameters,
                                 price=price // 100,
                                 photo=photo
                             )
-                            lots_codes.append(code)
-                            # print(
-                            #     f"{name = } {code =} {wheels_or_tires =} {brand_model = } {season =} {tire_parameters =} {status =}")
+                            print(
+                                f"{name = } {code =} {wheels_or_tires =} {brand_model = } {season =} {tire_parameters =} {status =}")
 
                 elif wheels_or_tires in ["Шины", "Шина"]:
                     brand_model = attributes[1]["value"]
@@ -71,7 +78,11 @@ async def upload_lots(chat: int):
                     status = attributes[4]["value"]
                     if status in ["Отличное", "Плохое", "Среднее", "Хорошее"]:
                         status = attributes[5]["value"]
-
+                    storage = None
+                    for num in range(5, 9):
+                        if attributes[num]["name"] == "Склад":
+                            storage = attributes[num]["value"]
+                            break
                     photo_url = data["images"]["meta"]["href"]
                     photo_download = request("GET", photo_url,
                                              headers={
@@ -81,13 +92,14 @@ async def upload_lots(chat: int):
                         photo = request("GET", photo_download["rows"][0]["meta"]["downloadHref"],
                                         headers={"Authorization": f"Bearer {access_token}"}).content
 
-                        if status == "Принят" and price is not None and price > 0 and str(code) not in codes:
-                            lots_codes.append(code)
+                        if status == "Принят" and price is not None and price > 0 and str(
+                                code) not in codes and storage is not None:
                             db.add_lot(
                                 name=name,
                                 code=code,
                                 model=brand_model,
                                 season=season,
+                                storage=storage,
                                 tires=tire_parameters,
                                 disks=None,
                                 price=price // 100,
@@ -96,7 +108,6 @@ async def upload_lots(chat: int):
 
             #                 print(
             #                     f"{name = } {code =} {wheels_or_tires =} {brand_model = } {season =} {tire_parameters =} {status =}")
-
         except Exception as e:
             # print(e, data.keys(), sep="\n")
             # print("\n\n")

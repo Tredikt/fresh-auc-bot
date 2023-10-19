@@ -4,7 +4,7 @@ from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButt
 remove_markup = ReplyKeyboardRemove()
 
 # регистрация
-get_contact_markup = ReplyKeyboardMarkup()
+get_contact_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 get_contact_markup.add(
     KeyboardButton(text="Отправить номер телефона 📱", request_contact=True)
 )

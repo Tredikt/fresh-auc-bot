@@ -3,6 +3,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 class RegistrationStates(StatesGroup):
     phone = State()
+    email = State()
     fullname = State()
     gender = State()
     age = State()

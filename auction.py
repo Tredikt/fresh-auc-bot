@@ -3,7 +3,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import ContentTypes, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 
 from db_api.database import Database
-from config import token, db_name, admin_group
+from config import token, db_name, admin_group, channel_id
 
 from blanks.bot_texts import start_text
 from blanks.bot_markups import get_contact_markup, appeal, winner_markup
@@ -11,6 +11,7 @@ from blanks.bot_texts import decline
 
 from states_handlers.bot_states import RegistrationStates, AdminStates, AuctionStates
 from states_handlers.get_contact_handler import get_contact_handler
+from states_handlers.get_email_handler import get_email_handler
 from states_handlers.get_fullname_handler import get_fullname_handler
 from states_handlers.get_gender_handler import get_gender_handler
 from states_handlers.get_age_handler import get_age_handler
@@ -26,7 +27,7 @@ from admins_functions.delete_admin_handler import delete_admin_handler
 from admins_functions.delete_partner_handler import delete_partner_handler
 from requests import request
 import logging
-
+from datetime import datetime
 logging.basicConfig(level="INFO")
 
 
@@ -38,11 +39,13 @@ class AucBot:
         self.codes = dict()
 
     async def start_handler(self, message, state):
+
         await state.finish()
         chat_id = message.chat.id
         tg_id = message.from_user.id
         blocked_users = self.db.get_blocked_users()
         print(tg_id)
+
         if tg_id in blocked_users:
             await self.bot.send_message(
                 chat_id=tg_id,
@@ -79,8 +82,9 @@ class AucBot:
             code = self.codes[tg_id]
             lot_id, lot_text, lot_price = self.db.get_selling_lot(code)
             phone, fullname = self.db.user_by_id(tg_id=tg_id)
-            self.db.add_ransom(tg_id=tg_id, phone=phone, fullname=fullname, ransom=lot_price)
+            self.db.add_ransom(tg_id=tg_id, phone=phone, fullname=fullname, code=code, ransom=lot_price)
             self.db.update_status_sell(code)
+            self.db.delete_now_lots(self.codes[tg_id])
 
             if username is None:
                 if message.from_user.last_name is None:
@@ -122,6 +126,7 @@ class AucBot:
                         chat_id=admin_group,
                         text=f"Лот №{self.codes[tg_id]} не был никем выкуплен и будет выставлен позже"
                     )
+                    await self.db.delete_now_lots(self.codes[tg_id])
                 else:
                     lot_id, lot_text, lot_price = self.db.get_selling_lot(self.codes[tg_id])
                     await self.bot.send_message(
@@ -181,34 +186,34 @@ class AucBot:
             )
         chat = message.chat.id
 
-        if chat == -1001985774888:
-            text = message.text
-            print(text)
-            text_list = text.split("\n")
-            print(text_list)
-            name = text_list[1].split(":")[1].strip()
-            model = text_list[2].split(":")[1].strip()
-            code = text_list[3].split(":")[1].strip()
-            season = text_list[4].split(":")[1].strip()
-            tires = text_list[5].split(":")[1].strip()
-            if "mp" in text_list[6].split(":")[1].strip():
-                disks = text_list[6].split(":")[1].strip()
-                price = text_list[7].split(":")[1].strip()
-                photo = text_list[9].split(":", 1)[1].strip()
-            else:
-                disks = None
-                price = text_list[6].split(":")[1].strip()
-                photo = text_list[7].split(":", 1)[1].strip()
-
-            response = request("GET", photo)
-            print(response.json())
-            if response.status_code == 200:
-                with open(f"tires/photos_{code}.jpg", "wb") as file:
-                    file.write(response.content)
-            else:
-                print(response.status_code, "status_code")
-            print(name, model, code, season, tires, disks, price, photo)
-            self.db.add_lot(name, model, code, season, tires, disks, price, photo)
+        # if chat == -1001985774888:
+        #     text = message.text
+        #     print(text)
+        #     text_list = text.split("\n")
+        #     print(text_list)
+        #     name = text_list[1].split(":")[1].strip()
+        #     model = text_list[2].split(":")[1].strip()
+        #     code = text_list[3].split(":")[1].strip()
+        #     season = text_list[4].split(":")[1].strip()
+        #     tires = text_list[5].split(":")[1].strip()
+        #     if "mp" in text_list[6].split(":")[1].strip():
+        #         disks = text_list[6].split(":")[1].strip()
+        #         price = text_list[7].split(":")[1].strip()
+        #         photo = text_list[9].split(":", 1)[1].strip()
+        #     else:
+        #         disks = None
+        #         price = text_list[6].split(":")[1].strip()
+        #         photo = text_list[7].split(":", 1)[1].strip()
+        #
+        #     response = request("GET", photo)
+        #     print(response.json())
+        #     if response.status_code == 200:
+        #         with open(f"tires/photos_{code}.jpg", "wb") as file:
+        #             file.write(response.content)
+        #     else:
+        #         print(response.status_code, "status_code")
+        #     print(name, model, code, season, tires, disks, price, photo)
+        #     self.db.add_lot(name, model, code, season, tires, disks, price, photo)
 
     async def get_code(self, tg_id, code):
         self.codes[tg_id] = code
@@ -227,6 +232,7 @@ class AucBot:
                                          state=AuctionStates.winner)
         self.dp.register_message_handler(callback=self.start_handler, commands=["start"], state="*")
         self.dp.register_message_handler(callback=get_contact_handler, content_types=ContentTypes.CONTACT, state=RegistrationStates.phone)
+        self.dp.register_message_handler(callback=get_email_handler, content_types=ContentTypes.TEXT, state=RegistrationStates.email)
         self.dp.register_message_handler(callback=get_fullname_handler, content_types=ContentTypes.TEXT, state=RegistrationStates.fullname)
         self.dp.register_message_handler(callback=get_gender_handler, content_types=ContentTypes.TEXT, state=RegistrationStates.gender)
         self.dp.register_message_handler(callback=get_age_handler, content_types=ContentTypes.TEXT, state=RegistrationStates.age)

@@ -45,7 +45,7 @@ async def admin_callback_handler(call, state):
                 message_id=m_id
             )
             code = callback.split("_")[1]
-            name, model, code, season, tires, disks, price, photo, status = db.get_lot(code)
+            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
 
             if int(tires[-2:]) >= 18:
                 auc_price = 500
@@ -53,7 +53,7 @@ async def admin_callback_handler(call, state):
                 auc_price = 250
 
             db.update_price(code=code, price=int(auc_price))
-            name, model, code, season, tires, disks, price, photo, status = db.get_lot(code)
+            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
             photo = db.get_photo_by_code(code)
             lot_id, lot_text, lot_price = db.get_selling_lot(code)
             saved_chats = db.get_saved_lots(code=code)
@@ -86,11 +86,11 @@ async def admin_callback_handler(call, state):
 
             for elem in saved_chats:
                 lot_id, chat_id = elem
-                await bot.edit_message_text(
+                await bot.edit_message_caption(
                     chat_id=chat_id,
                     message_id=lot_id,
                     # photo=photo,
-                    text=lot_text + f"\n{winners}" + f"💰 ТЕКУЩАЯ ЦЕНА: {lot_price}",
+                    caption=lot_text + f"\n{winners}" + f"💰 ТЕКУЩАЯ ЦЕНА: {lot_price}",
                     reply_markup=markup
                 )
 
@@ -144,8 +144,7 @@ async def admin_callback_handler(call, state):
             )
 
         elif callback == "warning":
-            print("aboba")
-            await call.answer(text="Если победитель откажется от лота, он передается следующему участнику")
+            await call.answer(text="Если победитель откажется от лота, он передается следующему участнику", show_alert=True)
 
         elif callback[:4] == "time":
             code = callback.split("_")[1]
@@ -154,11 +153,11 @@ async def admin_callback_handler(call, state):
             now_hours = datetime.now().hour
 
             time = (13 * 60) - (now_hours * 60 + now_minutes)
-            await call.answer(text=f"До конца аукциона {time} минут")
+            await call.answer(text=f"До конца аукциона {time} минут", show_alert=True)
 
         elif callback[:4] == "save":
             code = callback.split("_")[1]
-            name, model, code, season, tires, disks, price, photo, status = db.get_lot(code)
+            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
 
             if int(tires[-2:]) >= 18:
                 auc_price = "+ 500р."
@@ -205,7 +204,7 @@ async def admin_callback_handler(call, state):
                 text=f"Админ: {username} снял(а) лот №{code}"
             )
 
-            name, model, code, season, tires, disks, price, photo, status = db.get_lot(code)
+            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
             lot_id, lot_text, lot_price = db.get_selling_lot(code)
             saved_chats = db.get_saved_lots(code=code)
             saved_chats.insert(0, (lot_id, channel_id))
