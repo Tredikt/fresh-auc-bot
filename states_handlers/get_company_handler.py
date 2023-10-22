@@ -10,7 +10,7 @@ async def get_company_handler(message, state):
     bot, db = get_bot_and_db()
     text = message.text
 
-    if text == "Я не работаю в компании":
+    if text.lower() == "я не работаю в компании":
         async with state.proxy() as data:
             phone = data["phone"]
             email = data["email"]
@@ -85,6 +85,15 @@ async def get_company_handler(message, state):
                 text=accept_company,
             )
 
+            link = await bot.export_chat_invite_link(
+                chat_id=channel_id,
+            )
+
+            await bot.send_message(
+                chat_id=chat,
+                text="Вы добавлены в закрытый канал FRESH — Шинный аукцион!\n"
+                     "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link)
+            )
 
             await state.finish()
 

@@ -12,7 +12,7 @@ async def get_contact_handler(message, state):
 
     contact = str(contact)
     if contact[0] == "8":
-        contact.replace("8", "7", 1)
+        contact = contact.replace("8", "7", 1)
 
 
     phones = db.get_phones()
@@ -22,7 +22,8 @@ async def get_contact_handler(message, state):
     if contact in admin_phones:
         await bot.send_message(
             chat_id=chat,
-            text=accept_admin
+            text=accept_admin,
+            reply_markup=remove_markup
         )
 
         db.add_admin_id(

@@ -66,6 +66,7 @@ def winner_places(code, text=None, winner=None):
                 return winner_text
 
             elif len(winners) == 1:
+                print(winners)
                 fp = list(winners[0][1])
                 fp[-1] = "*"
                 fp[-2] = "*"

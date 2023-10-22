@@ -157,6 +157,14 @@ class Database:
 
     def add_place(self, tg_id, code, place):
         self.cur.execute(
+            f"""
+            DELETE FROM places
+            WHERE tg_id={tg_id}
+            AND code='{code}'
+            """
+        )
+
+        self.cur.execute(
             """
             INSERT INTO places
             (tg_id, code, place)
@@ -166,6 +174,17 @@ class Database:
             (tg_id, code, place)
         )
         self.conn.commit()
+
+    def get_bids_by_tg_id_and_code(self, tg_id, code):
+        bids = self.cur.execute(
+            f"""
+            SELECT username, lot_price FROM bids
+            WHERE tg_id={tg_id}
+            AND code='{code}'
+            """
+        ).fetchall()
+
+        return bids
 
     def get_tg_id_by_place(self, code, place):
         info = self.cur.execute(
@@ -475,7 +494,7 @@ class Database:
     def get_saved_lots_ids(self, code):
         get_saved_lots_ids = self.cur.execute(
             f"""
-               SELECT tg_id FROM saved_lots
+               SELECT chat_id FROM saved_lots
                WHERE code='{code}'
                """
         ).fetchall()
@@ -579,7 +598,7 @@ class Database:
                 """
                 INSERT INTO users
                 (phone, email, tg_id, fullname, gender, age, avatar, region, company, blocked)
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 info
             )
@@ -786,7 +805,7 @@ class Database:
             INSERT OR REPLACE INTO lots
             (name, model, code, storage, season, tires, disks, price, photo, status)
             VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             info
         )

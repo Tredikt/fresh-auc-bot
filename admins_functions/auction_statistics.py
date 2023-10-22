@@ -27,17 +27,19 @@ async def get_auction_statistics(tg_id):
     lots_count = len(codes) #where status=sold/auc количество разыгранных уникальны лотов
     relots_count = len(db.get_re_lot()) #количество повторных лотов (более 1 раза)
     # сколько пользователей принимали участие в торгах
-    raise_bids = set(*db.get_all_bids_ids())
-    save_lots = set(*db.get_all_saved_lots_id())
+    raise_bids = set(db.get_all_bids_ids())
+    save_lots = set(db.get_all_saved_lots_id())
     take_part = len(raise_bids.union(save_lots)) # участие
     count = 0
     prices_list = list()
 
     for code in codes:
         count += 1
-        name, model, code, season, tires, disks, price, photo = db.get_lot(code)
+        name, model, code, storage, season, tires, disks, price, photo = db.get_lot(code)
         last_price = db.get_last_price(code)
-        percentage = last_price / price * 100 - 100 # прирост цены (%)
+        percentage = 0
+        if last_price != 0:
+            percentage = last_price / price * 100 - 100 # прирост цены (%)
         prices_list.append(percentage)
     else:
         count = 1
@@ -60,7 +62,7 @@ async def get_auction_statistics(tg_id):
     with open("auc-list.xlsx", "rb") as document:
         await bot.send_document(
             chat_id=tg_id,
-            caption="Файл с данными о всех пользователях:",
+            caption="Файл с данными о аукционе:",
             document=document
         )
         os.remove("auc-list.xlsx")

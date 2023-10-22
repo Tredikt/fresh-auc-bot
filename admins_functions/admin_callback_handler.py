@@ -1,6 +1,6 @@
 from get_bot_and_db import get_bot_and_db
 from states_handlers.bot_states import AdminStates
-from blanks.bot_texts import admin_add_partner, admin_add_admin, admin_text, admin_partner_delete, admin_admin_delete
+from blanks.bot_texts import admin_add_partner, admin_add_admin, admin_text, admin_delete_partner, admin_delete_admin
 from blanks.bot_markups import admin_back, admin_markup
 from datetime import datetime
 from admins_functions.winner_places import winner_places
@@ -21,12 +21,18 @@ async def admin_callback_handler(call, state):
     m_id = call.message.message_id
     bot, db = get_bot_and_db()
     callback = call.data
-
+    print(callback)
     if call.message.chat.type == "private":
         tg_id = call.message.chat.id
     elif call.message.chat.type == "channel":
         tg_id = call["from"]["id"]
     username = call["from"]["username"]
+    if username is None:
+        if call["from"]["last_name"] is None:
+            username = call["from"]["first_name"]
+        else:
+            username = call["from"]["first_name"] + call["from"]["last_name"]
+    print(call)
 
     blocked_users = db.get_blocked_users()
     users = db.get_users_ids()
@@ -68,9 +74,10 @@ async def admin_callback_handler(call, state):
             else:
                 auc_price = "+ 250р."
 
+            bot_info = await bot.me
             markup = InlineKeyboardMarkup().add(
                 InlineKeyboardButton(
-                    text=auc_price, callback_data=f"raiseprice_{code}"
+                    text=auc_price, url=f"https://t.me/{bot_info.username}?start=raiseprice_{code}"
                 )
             ).add(
                 InlineKeyboardButton(
@@ -191,7 +198,7 @@ async def admin_callback_handler(call, state):
             )
             db.save_lot(lot_id=saved_lot.message_id, chat_id=tg_id, code=code)
 
-        elif callback[:6] == "delete":
+        elif callback[:6] == "delete" and callback not in ["delete_partner", "delete_admin"]:
             await bot.delete_message(
                 chat_id=tg_id,
                 message_id=m_id
@@ -204,7 +211,9 @@ async def admin_callback_handler(call, state):
                 text=f"Админ: {username} снял(а) лот №{code}"
             )
 
-            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+            lot = db.get_lot(code)
+            if lot is not None:
+                name, model, code, storage, season, tires, disks, price, photo, status = lot
             lot_id, lot_text, lot_price = db.get_selling_lot(code)
             saved_chats = db.get_saved_lots(code=code)
             saved_chats.insert(0, (lot_id, channel_id))
@@ -280,7 +289,7 @@ async def admin_callback_handler(call, state):
 
             await bot.send_message(
                 chat_id=chat,
-                text=admin_partner_delete,
+                text=admin_delete_partner,
                 reply_markup=admin_back
             )
             await AdminStates.delete_partner.set()
@@ -293,7 +302,7 @@ async def admin_callback_handler(call, state):
 
             await bot.send_message(
                 chat_id=chat,
-                text=admin_admin_delete,
+                text=admin_delete_admin,
                 reply_markup=admin_back
             )
             await AdminStates.delete_admin.set()
