@@ -25,6 +25,15 @@ class Database:
 
         self.cur.execute(
             """
+            CREATE TABLE IF NOT EXISTS id_and_codes(
+                tg_id INTEGER,
+                code TEXT
+            )
+            """
+        )
+
+        self.cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS registration_passed(
                 tg_id INTEGER
             )
@@ -143,6 +152,61 @@ class Database:
         )
         self.conn.commit()
 
+    def get_id_and_codes(self):
+        id_and_codes = self.cur.execute(
+            """
+            SELECT tg_id, code FROM id_and_codes
+            """
+        ).fetchall()
+
+        if id_and_codes is not None:
+            codes_dict = {elem[0]: elem[1] for elem in id_and_codes}
+            return codes_dict
+        return []
+
+    def add_id_and_code(self, tg_id, code):
+        self.cur.execute(
+            f"""
+            DELETE FROM id_and_codes
+            WHERE tg_id={tg_id}
+            AND code='{code}'
+            """
+        )
+
+        self.conn.commit()
+
+        self.cur.execute(
+            f"""
+            INSERT INTO id_and_codes
+            (tg_id, code)
+            VALUES
+            (?, ?);
+            """,
+            (tg_id, code)
+        )
+
+        self.conn.commit()
+
+    def delete_bids(self, code):
+        self.cur.execute(
+            f"""
+            DELETE FROM bids
+            WHERE code='{code}'
+            """
+        )
+        self.conn.commit()
+
+    def delete_id_and_codes(self, tg_id, code):
+        self.cur.execute(
+            f"""
+                    DELETE FROM id_and_codes
+                    WHERE tg_id={tg_id}
+                    AND code='{code}'
+                    """
+        )
+
+        self.conn.commit()
+
     def get_photo_by_code(self, code):
         photo = self.cur.execute(
             f"""
@@ -204,7 +268,7 @@ class Database:
             WHERE code='{code}'
             """
         ).fetchall()
-
+        print(places_ids, "places_ids")
         if places_ids is None:
             return {}
         places_dict = {elem[0]: elem[1] for elem in places_ids}

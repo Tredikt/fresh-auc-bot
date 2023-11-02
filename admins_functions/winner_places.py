@@ -7,20 +7,35 @@ def winner_places(code, text=None, winner=None):
     max_bids = list()
     usernames = list()
 
+    # print(f"{users =}")
     if len(users) > 0:
-        for _ in range(4):
-            if len(users) > 0:
-                if max(users, key=lambda x: x[2])[1] not in usernames:
-                    usernames.append(max(users, key=lambda x: x[2])[1])
+        for num in range(-100, 0, -1):
+            try:
+                if users[num][1] == users[num - 1][1]:
+                    users.remove(users[-2])
+            except IndexError:
+                continue
+
+        if len(users) > 0:
+            for _ in range(4):
+                try:
+                    maximum = max(users, key=lambda x: x[2])[1]
+                except ValueError:
+                    break
+
+                # print(f"{maximum = } {usernames = }")
+                if maximum not in usernames:
+                    usernames.append(maximum)
                     max_bids.append(max(users, key=lambda x: x[2]))
                     for e in users:
-                        if e[1] == max(users, key=lambda x: x[2])[1]:
+                        # print("eee", e[1], maximum, users)
+                        if e[1] == maximum:
                             users.remove(e)
 
-        # print(usernames, max_bids)
+        # print(f"{usernames =}, {max_bids =}")
         # print(sorted(max_bids, key=lambda x: x[2], reverse=True))
         winners = sorted(max_bids, key=lambda x: x[2], reverse=True)
-
+        # print(f"{winners =}")
         if winner:
             fp = list(winners[0][1])
             fp[-1] = "*"

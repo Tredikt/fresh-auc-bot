@@ -10,8 +10,8 @@ from .users_statistics import get_users_statistics
 from .lots_statistics import get_lots_statistics
 from .auction_statistics import get_auction_statistics
 from .upload_lots import upload_lots
-from config import channel_id
-import asyncio
+from config import channel_id, admin_group
+import aiogram
 
 
 async def admin_callback_handler(call, state):
@@ -22,6 +22,7 @@ async def admin_callback_handler(call, state):
     bot, db = get_bot_and_db()
     callback = call.data
     print(callback)
+    tg_id = None
     if call.message.chat.type == "private":
         tg_id = call.message.chat.id
     elif call.message.chat.type == "channel":
@@ -44,11 +45,31 @@ async def admin_callback_handler(call, state):
             text="К сожалению вы заблокированы"
         )
 
-    elif tg_id in users or tg_id in admins:
+    elif tg_id in users or tg_id in admins or call.message.chat.id == admin_group:
         if callback[:7] == "confirm":
             await bot.delete_message(
                 chat_id=tg_id,
                 message_id=m_id
+            )
+
+            try:
+                await bot.delete_message(
+                    chat_id=tg_id,
+                    message_id=m_id - 1
+                )
+            except:
+                pass
+
+            link = await bot.export_chat_invite_link(chat_id=channel_id)
+
+            await bot.send_message(
+                chat_id=tg_id,
+                text="Ваша ставка принята",
+                reply_markup=InlineKeyboardMarkup().add(
+                    InlineKeyboardButton(
+                        text="Обратно в канал", url=link
+                    )
+                )
             )
             code = callback.split("_")[1]
             name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
@@ -69,6 +90,7 @@ async def admin_callback_handler(call, state):
             # await asyncio.sleep(5)
             winners = winner_places(code, text=True)
 
+            print("callback", winners)
             if int(tires[-2:]) >= 18:
                 auc_price = "+ 500р."
             else:
@@ -81,13 +103,16 @@ async def admin_callback_handler(call, state):
                 )
             ).add(
                 InlineKeyboardButton(
-                    text="💾", callback_data=f"save_{code}"
+                    text="💾", url=f"https://t.me/{bot_info.username}?start=save_{code}"
                 ),
                 InlineKeyboardButton(
                     text="⏳", callback_data=f"time_{code}"
                 ),
                 InlineKeyboardButton(
                     text="⚠️", callback_data="warning"
+                ),
+                InlineKeyboardButton(
+                    text="БОТ", url=f"https://t.me/{bot_info.username}"
                 )
             )
 
@@ -117,8 +142,8 @@ async def admin_callback_handler(call, state):
             db.unlock_user_by_tg(user_tg)
             phone, fullname = db.user_by_id(tg_id=user_tg)
             await bot.edit_message_text(
-                text=f"Пользоватеть ({phone} {fullname}) разблокирован",
-                chat_id=channel_id,
+                text=f"Пользоватеть (+{phone} {fullname}) разблокирован",
+                chat_id=admin_group,
                 message_id=m_id
             )
 
@@ -207,8 +232,8 @@ async def admin_callback_handler(call, state):
             code = callback.split("_")[1]
             db.delete_saved_lots(code)
             await bot.send_message(
-                chat_id=channel_id,
-                text=f"Админ: {username} снял(а) лот №{code}"
+                chat_id=admin_group,
+                text=f"Админ: {username} снял(а) лот №{code}\n"
             )
 
             lot = db.get_lot(code)
@@ -219,14 +244,27 @@ async def admin_callback_handler(call, state):
             saved_chats.insert(0, (lot_id, channel_id))
             db.add_bid(tg_id, username, lot_price, code)
             winners = winner_places(code, text=True)
+            db.delete_bids(code=code)
+            db.delete_now_lots(code=code)
+            db.update_status_stock(code=code)
 
             for elem in saved_chats:
                 lot_id, chat_id = elem
-                await bot.edit_message_text(
+                await bot.edit_message_caption(
                     chat_id=chat_id,
                     message_id=lot_id,
-                    text="Лот снят с аукциона админом" + lot_text + f"\n{winners}" + f"💰 ИТОГОВАЯ ЦЕНА: {lot_price}",
+                    caption="Лот снят с аукциона админом" + lot_text + f"\n{winners}" + f"💰 ИТОГОВАЯ ЦЕНА: {lot_price}",
                 )
+
+                try:
+                    await bot.edit_message_reply_markup(
+                        chat_id=chat_id,
+                        message_id=lot_id,
+                        reply_markup=InlineKeyboardMarkup()
+                    )
+                except aiogram.exceptions.MessageNotModified:
+                    continue
+
 
         elif callback[:9] == "deletelot":
             code = callback.split("_")[1]

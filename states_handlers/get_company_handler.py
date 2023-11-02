@@ -45,7 +45,7 @@ async def get_company_handler(message, state):
         await bot.send_message(
             chat_id=chat,
             text="Вы добавлены в закрытый канал FRESH — Шинный аукцион!\n"
-                 "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link)
+                 "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link) + "\nТак же прочитайте правила по команде /rules"
         )
 
         await state.finish()
@@ -92,7 +92,7 @@ async def get_company_handler(message, state):
             await bot.send_message(
                 chat_id=chat,
                 text="Вы добавлены в закрытый канал FRESH — Шинный аукцион!\n"
-                     "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link)
+                     "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link) + "\nТак же прочитайте правила по команде /rules"
             )
 
             await state.finish()
