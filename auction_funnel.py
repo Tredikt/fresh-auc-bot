@@ -187,7 +187,7 @@ async def edit_markups():
                                 db.update_status_stock(code)
                                 db.update_repetition(code)
                             elif repetition_count == 3:
-                                db.delete_lot(code)
+                                db.update_status_deleted(code)
                                 await bot.send_message(
                                     chat_id=admin_group,
                                     text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."
@@ -318,7 +318,7 @@ async def edit_markups():
                         db.update_status_stock(code)
                         db.update_repetition(code)
                     elif repetition_count == 3:
-                        db.delete_lot(code)
+                        db.update_status_deleted(code)
                         await bot.send_message(
                             chat_id=admin_group,
                             text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."

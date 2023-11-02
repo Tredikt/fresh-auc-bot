@@ -239,7 +239,7 @@ class AucBot:
                                 self.db.update_status_stock(id_and_codes[tg_id])
                                 self.db.update_repetition(id_and_codes[tg_id])
                             elif repetition_count == 3:
-                                self.db.delete_lot(id_and_codes[tg_id])
+                                self.db.update_status_deleted(id_and_codes[tg_id])
                                 await self.bot.send_message(
                                     chat_id=admin_group,
                                     text=f"Лот №{id_and_codes[tg_id]} удалён, так как никто не выкупил его в течении 3 дней."

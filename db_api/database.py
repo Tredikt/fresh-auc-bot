@@ -955,6 +955,16 @@ class Database:
         )
         self.conn.commit()
 
+    def update_status_deleted(self, code):
+        self.cur.execute(
+            f"""
+            UPDATE lots
+            SET status="deleted"
+            WHERE code='{code}'
+            """
+        )
+        self.conn.commit()
+
     def update_status_sell(self, code):
         self.cur.execute(
             f"""
