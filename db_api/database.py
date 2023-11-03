@@ -990,7 +990,7 @@ class Database:
     def get_three_lots(self):
         three_lots = self.cur.execute(
             f"""
-            SELECT name, model, code, storage, season, tires, disks, price, photo FROM lots
+            SELECT name, model, code, storage, season, tires, disks, price, photo, status FROM lots
             WHERE status="stock"
             LIMIT 3
             """

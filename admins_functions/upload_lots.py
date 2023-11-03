@@ -36,13 +36,13 @@ async def upload_lots(chat: int):
 
             wheels_or_tires = attributes[0]["value"]
             print(name, code, wheels_or_tires)
-            if wheels_or_tires.lower() in ["колеса", "колёса"] or wheels_or_tires.lower()[:6] == "колеса":
+            if "колеса" in wheels_or_tires.lower() or "колёса" in wheels_or_tires.lower() or "колесо" in wheels_or_tires.lower():
                 brand_model = attributes[1]["value"]
                 season = attributes[2]["value"]
                 tire_parameters = attributes[3]["value"]
                 disk_parameters = attributes[4]["value"]
                 status = attributes[5]["value"]
-                if status in ["отличное", "плохое", "среднее", "хорошее"]:
+                if status.lower() in ["отличное", "плохое", "среднее", "хорошее"]:
                     status = attributes[6]["value"]
                 storage = None
                 for num in range(5, 9):
@@ -65,6 +65,7 @@ async def upload_lots(chat: int):
                 if len(photo_download["rows"]) > 0:
                     photo = request("GET", photo_download["rows"][0]["meta"]["downloadHref"],
                                     headers={"Authorization": f"Bearer {access_token}"}).content
+                    print(code, status, price, storage)
                     if status.lower() in ["принят", "подтвержден",
                                           "подтверждён"] and price is not None and price > 0 and str(
                             code) not in codes and storage is not None:

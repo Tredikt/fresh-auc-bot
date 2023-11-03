@@ -13,7 +13,7 @@ from config import channel_id, admin_group
 
 async def start_auction():
     weekday = datetime.now().weekday() + 1
-    if datetime.now().weekday() in [1, 2, 3, 4, 5]:
+    if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
         three_lots = db.get_three_lots()
         relots_codes = db.get_re_lot()
@@ -26,20 +26,25 @@ async def start_auction():
                 db.get_lot(code)
             )
 
+        # print(len(lots_for_auc), "re_lots")
         if len(lots_for_auc) < 3:
             for num, elem in enumerate(three_lots):
                 if 3 - len(lots_for_auc) == num:
                     break
-                lots_for_auc.append(elem)
+                if elem not in lots_for_auc:
+                    lots_for_auc.append(elem)
 
+        # print(len(lots_for_auc), "re_lots + lots")
+        print([elem[2] for elem in lots_for_auc])
         for elem in lots_for_auc:
-            print("lots")
-            name, model, code, storage, season, tires, disks, price, photo = elem
-
-            if int(tires[-2:]) >= 18:
-                auc_price = "+ 500р."
-            else:
-                auc_price = "+ 250р."
+            # print("lots")
+            # print(len(elem))
+            name, model, code, storage, season, tires, disks, price, photo, status = elem
+            #
+            # if int(tires[-2:]) >= 18:
+            #     auc_price = "+ 500р."
+            # else:
+            #     auc_price = "+ 250р."
 
             # markup = InlineKeyboardMarkup()
             # markup.add(
@@ -91,21 +96,25 @@ async def start_auction():
             )
 
             db.add_auc_lot(lot_id=auc_message.message_id, lot_text=text, lot_price=price, code=code)
-            await asyncio.sleep(15 * 60)
+            # await asyncio.sleep(15 * 60)
 
 
 async def edit_lots():
     weekday = datetime.now().weekday() + 1
-    if datetime.now().weekday() in [1, 2, 3, 4, 5]:
+    if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
 
         codes = db.get_lots_codes()
         for code in codes:
             name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
             lot_id, lot_text, lot_price = db.get_selling_lot(code)
-            if int(tires[-2:]) >= 18:
-                auc_price = "+ 500р."
-            else:
+
+            try:
+                if int(tires[-2:]) >= 18:
+                    auc_price = "+ 500р."
+                else:
+                    auc_price = "+ 250р."
+            except ValueError:
                 auc_price = "+ 250р."
 
             bot_info = await bot.me
@@ -362,12 +371,23 @@ async def reminder():
         )
     return
 
+async def reminder_beggining():
+    bot, db = get_bot_and_db()
+    codes = db.get_lots_codes()
+
+    if len(codes) > 0:
+        await bot.send_message(
+            chat_id=channel_id,
+            text="До начала аукциона осталось 10 мин. Успейте сделать последние ставки!"
+        )
+    return
 
 async def scheduler():
     aioschedule.every().day.at("12:00").do(edit_lots) # 12:00
     aioschedule.every().day.at("12:50").do(reminder) # 12:50
+    aioschedule.every().day.at("11:50").do(reminder_beggining) # 11:50
     aioschedule.every().day.at("13:00").do(edit_markups) # 13:00
-    aioschedule.every().day.at("19:00").do(start_auction) # 18:30
+    aioschedule.every().day.at("18:30").do(start_auction) # 18:30
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)
