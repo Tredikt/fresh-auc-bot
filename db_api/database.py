@@ -439,6 +439,7 @@ class Database:
             f"""
             SELECT repetition FROM re_lots
             WHERE code='{code}'
+            AND repetition < 3
             """
         ).fetchone()
         self.conn.commit()
@@ -546,7 +547,7 @@ class Database:
         saved_lots_codes = self.cur.execute(
             f"""
             SELECT code FROM saved_lots
-            WHERE tg_id={tg_id}
+            WHERE chat_id={tg_id}
             """
         ).fetchall()
 

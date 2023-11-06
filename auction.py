@@ -46,11 +46,6 @@ class AucBot:
         blocked_users = self.db.get_blocked_users()
         admins = self.db.get_admins()
 
-        # print(tg_id, chat_id)
-        # link = await self.bot.export_chat_invite_link(
-        #     chat_id=channel_id,
-        # )
-        # print(link)
         text = message.text
         if text[7:17] == "raiseprice":
             code = text.split("_")[1]
@@ -161,8 +156,6 @@ class AucBot:
         admins = self.db.get_admins()
         blocked_users = self.db.get_blocked_users()
         id_and_codes = self.db.get_id_and_codes()
-        print(tg_id)
-        print(id_and_codes)
         if tg_id in blocked_users and text.lower() != "обжаловать":
             await self.bot.send_message(
                 chat_id=tg_id,
@@ -213,13 +206,11 @@ class AucBot:
             elif text.lower() == "передумал":
                 phone, fullname = self.db.user_by_id(tg_id=tg_id)
                 places = self.db.get_places_ids(code=id_and_codes[tg_id])
-                print(places, "places")
                 this_place = places[tg_id]
-                print(this_place, "this place")
                 self.db.delete_id_and_codes(tg_id, id_and_codes[tg_id])
                 if this_place in [1, 2]:
                     next_place = self.db.get_tg_id_by_place(code=id_and_codes[tg_id], place=this_place + 1)
-                    print(f"{next_place}, {this_place}, {admins}")
+                    # print(f"{next_place}, {this_place}, {admins}")
                     if next_place is None or next_place[0] in admins:
                         if next_place is not None and next_place[0] in admins and this_place == 1:
                             next_place = self.db.get_tg_id_by_place(code=id_and_codes[tg_id], place=3)
@@ -270,7 +261,7 @@ class AucBot:
 
                     else:
                         user_bids = self.db.get_bids_by_tg_id_and_code(tg_id=next_place[0], code=id_and_codes[tg_id])
-                        print(user_bids, next_place[0])
+                        # print(user_bids, next_place[0])
                         best_bid = max(user_bids, key=lambda x: x[1])
 
                         first_place = list(best_bid[0])
