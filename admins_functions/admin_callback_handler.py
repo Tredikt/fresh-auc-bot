@@ -74,13 +74,15 @@ async def admin_callback_handler(call, state):
             code = callback.split("_")[1]
             name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
 
-            if int(tires[-2:]) >= 18:
-                auc_price = 500
-            else:
-                auc_price = 250
+            try:
+                if int(tires[-2:]) >= 18:
+                    auc_price = "+ 500р."
+                else:
+                    auc_price = "+ 250р."
+            except ValueError:
+                auc_price = "+ 250р."
 
-            db.update_price(code=code, price=int(auc_price))
-            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+            db.update_price(code=code, price=int(auc_price[2:5]))
             photo = db.get_photo_by_code(code)
             lot_id, lot_text, lot_price = db.get_selling_lot(code)
             saved_chats = db.get_saved_lots(code=code)
@@ -91,10 +93,6 @@ async def admin_callback_handler(call, state):
             winners = winner_places(code, text=True)
 
             print("callback", winners)
-            if int(tires[-2:]) >= 18:
-                auc_price = "+ 500р."
-            else:
-                auc_price = "+ 250р."
 
             bot_info = await bot.me
             markup = InlineKeyboardMarkup().add(
@@ -191,9 +189,12 @@ async def admin_callback_handler(call, state):
             code = callback.split("_")[1]
             name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
 
-            if int(tires[-2:]) >= 18:
-                auc_price = "+ 500р."
-            else:
+            try:
+                if int(tires[-2:]) >= 18:
+                    auc_price = "+ 500р."
+                else:
+                    auc_price = "+ 250р."
+            except ValueError:
                 auc_price = "+ 250р."
 
             markup = InlineKeyboardMarkup()

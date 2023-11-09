@@ -64,9 +64,12 @@ class AucBot:
             lot_id, lot_text, lot_price = self.db.get_selling_lot(code)
             name, model, code, storage, season, tires, disks, price, photo, status = self.db.get_lot(code)
 
-            if int(tires[-2:]) >= 18:
-                auc_price = "+ 500р."
-            else:
+            try:
+                if int(tires[-2:]) >= 18:
+                    auc_price = "+ 500р."
+                else:
+                    auc_price = "+ 250р."
+            except ValueError:
                 auc_price = "+ 250р."
 
             markup = InlineKeyboardMarkup()
@@ -170,7 +173,7 @@ class AucBot:
                 self.db.add_ransom(tg_id=tg_id, phone=phone, fullname=fullname, code=code, ransom=lot_price)
                 self.db.update_status_sell(code)
                 self.db.delete_now_lots(id_and_codes[tg_id])
-
+                self.db.delete_id_and_codes(tg_id=tg_id, code=id_and_codes[tg_id])
                 if username is None:
                     if message.from_user.last_name is None:
                         username = message.from_user.first_name
@@ -207,7 +210,7 @@ class AucBot:
                 phone, fullname = self.db.user_by_id(tg_id=tg_id)
                 places = self.db.get_places_ids(code=id_and_codes[tg_id])
                 this_place = places[tg_id]
-                self.db.delete_id_and_codes(tg_id, id_and_codes[tg_id])
+                # self.db.delete_id_and_codes(tg_id, id_and_codes[tg_id])
                 if this_place in [1, 2]:
                     next_place = self.db.get_tg_id_by_place(code=id_and_codes[tg_id], place=this_place + 1)
                     # print(f"{next_place}, {this_place}, {admins}")
@@ -220,7 +223,9 @@ class AucBot:
                                 chat_id=admin_group,
                                 text=f"Лот №{id_and_codes[tg_id]} не был никем выкуплен и будет выставлен позже"
                             )
-
+                            self.db.delete_bids(id_and_codes[tg_id])
+                            self.db.delete_places(id_and_codes[tg_id])
+                            self.db.delete_saved_chats(id_and_codes[tg_id])
                             repetition_count = self.db.get_repetition(id_and_codes[tg_id])
 
                             if repetition_count is None:
@@ -235,7 +240,7 @@ class AucBot:
                                     chat_id=admin_group,
                                     text=f"Лот №{id_and_codes[tg_id]} удалён, так как никто не выкупил его в течении 3 дней."
                                 )
-                            await self.db.delete_now_lots(id_and_codes[tg_id])
+                            self.db.delete_now_lots(id_and_codes[tg_id])
 
                         elif next_place is not None:
                             user_bids = self.db.get_bids_by_tg_id_and_code(tg_id=next_place[0],

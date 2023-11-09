@@ -10,29 +10,34 @@ import aiogram
 from datetime import datetime
 from config import channel_id, admin_group
 
+reminder_begin_msg = None
+reminder_end_msg = None
+
 
 async def start_auction():
     weekday = datetime.now().weekday() + 1
     if weekday in [1, 2, 3, 4, 5, 6]:
         bot, db = get_bot_and_db()
-        three_lots = db.get_three_lots()
+        five_lots = db.get_five_lots()
+        print(len(five_lots), "len(five_lots)")
         relots_codes = db.get_re_lot()
 
         lots_for_auc = []
         for num, code in enumerate(relots_codes):
-            if num == 3:
+            if num == 5:
                 break
             lots_for_auc.append(
                 db.get_lot(code)
             )
 
-        if len(lots_for_auc) < 3:
-            for num, elem in enumerate(three_lots):
-                if 3 - len(lots_for_auc) == num:
+        if len(lots_for_auc) < 5:
+            for num, elem in enumerate(five_lots):
+                if 5 - len(lots_for_auc) == 0:
                     break
                 if elem not in lots_for_auc:
                     lots_for_auc.append(elem)
 
+        print(len(lots_for_auc))
         for elem in lots_for_auc:
             name, model, code, storage, season, tires, disks, price, photo, status = elem
             #
@@ -91,7 +96,7 @@ async def start_auction():
             )
 
             db.add_auc_lot(lot_id=auc_message.message_id, lot_text=text, lot_price=price, code=code)
-            await asyncio.sleep(15 * 60)
+            # await asyncio.sleep(15 * 60)
 
 
 async def edit_lots():
@@ -99,6 +104,14 @@ async def edit_lots():
     # if True:
     if weekday in [1, 2, 3, 4, 5, 6, 7]:
         bot, db = get_bot_and_db()
+
+        try:
+            bot.delete_message(
+                chat_id=channel_id,
+                message_id=reminder_begin_msg.message_id
+            )
+        except Exception:
+            pass
 
         codes = db.get_lots_codes()
         for code in codes:
@@ -114,31 +127,33 @@ async def edit_lots():
                 auc_price = "+ 250р."
 
             bot_info = await bot.me
-            await bot.edit_message_caption(
-                chat_id=channel_id,
-                message_id=lot_id,
-                caption=lot_text + f"💰 ТЕКУЩАЯ ЦЕНА: {lot_price}",
-                reply_markup=InlineKeyboardMarkup().add(
-                    InlineKeyboardButton(
-                        text=auc_price, url=f"https://t.me/{bot_info.username}?start=raiseprice_{code}"
-                    )
-                ).add(
-                    InlineKeyboardButton(
-                        text="💾", url=f"https://t.me/{bot_info.username}?start=save_{code}"
-                    ),
-                    InlineKeyboardButton(
-                        text="⏳", callback_data=f"time_{code}"
-                    ),
-                    InlineKeyboardButton(
-                        text="⚠️", callback_data="warning"
-                    ),
-                    InlineKeyboardButton(
-                        text="БОТ", url=f"https://t.me/{bot_info.username}"
+            try:
+                await bot.edit_message_caption(
+                    chat_id=channel_id,
+                    message_id=lot_id,
+                    caption=lot_text + f"💰 ТЕКУЩАЯ ЦЕНА: {lot_price}",
+                    reply_markup=InlineKeyboardMarkup().add(
+                        InlineKeyboardButton(
+                            text=auc_price, url=f"https://t.me/{bot_info.username}?start=raiseprice_{code}"
+                        )
+                    ).add(
+                        InlineKeyboardButton(
+                            text="💾", url=f"https://t.me/{bot_info.username}?start=save_{code}"
+                        ),
+                        InlineKeyboardButton(
+                            text="⏳", callback_data=f"time_{code}"
+                        ),
+                        InlineKeyboardButton(
+                            text="⚠️", callback_data="warning"
+                        ),
+                        InlineKeyboardButton(
+                            text="БОТ", url=f"https://t.me/{bot_info.username}"
+                        )
                     )
                 )
-            )
+            except aiogram.exceptions.MessageIdInvalid:
+                continue
     return
-
 
 
 async def edit_markups():
@@ -146,151 +161,77 @@ async def edit_markups():
     # if True:
     if weekday in [1, 2, 3, 4, 5, 6, 7]:
         bot, db = get_bot_and_db()
+        try:
+            bot.delete_message(
+                chat_id=channel_id,
+                message_id=reminder_end_msg.message_id
+            )
+        except Exception:
+            pass
         codes = db.get_lots_codes()
-        # if (datetime.now().hour * 60 + datetime.now().minute) == (13 * 60):
-        if True:
-            for code in codes:
-                name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
-                lot_id, lot_text, lot_price = db.get_selling_lot(code)
-                winners = winner_places(code, winner=True)
-                if len(winners) != 0:
-                    first_place = winners
-                    winner = winner_places(code)[0][0]
-                    winners = winner_places(code)
+        print('codes', codes)
+        for code in codes:
+            print("code", code)
+            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+            lot_id, lot_text, lot_price = db.get_selling_lot(code)
+            winners = winner_places(code, winner=True)
 
-                    place_number = 0
-                    for elem in winners:
-                        place_number += 1
-                        db.add_place(tg_id=elem[0], code=code, place=place_number)
+            if len(winners) != 0:
+                first_place = winners
+                winner = winner_places(code)[0][0]
+                winners = winner_places(code)
 
-                    admins = db.get_admins()
+                place_number = 0
+                for elem in winners:
+                    place_number += 1
+                    db.add_place(tg_id=elem[0], code=code, place=place_number)
 
-                    if winner in admins:
-                        fail_text = f"Лот №{code} не был никем выкуплен и будет выставлен позже"
-                        next_place = db.get_tg_id_by_place(code=code, place=2)
-                        db.add_winner(tg_id=winner, phone="admin", fullname="admin", code=code)
+                admins = db.get_admins()
 
-                        if next_place in admins:
-                            next_place = db.get_tg_id_by_place(code=code, place=3)
+                if winner in admins:
+                    fail_text = f"Лот №{code} не был никем выкуплен и будет выставлен позже"
+                    next_place = db.get_tg_id_by_place(code=code, place=2)
+                    db.add_winner(tg_id=winner, phone="admin", fullname="admin", code=code)
 
-                        if next_place is None:
+                    if next_place in admins:
+                        next_place = db.get_tg_id_by_place(code=code, place=3)
+
+                    if next_place is None:
+                        await bot.send_message(
+                            chat_id=admin_group,
+                            text=fail_text
+                        )
+                        db.delete_now_lots(code)
+                        db.delete_bids(code)
+                        db.delete_saved_chats(code)
+                        db.delete_places(code)
+                        saved_chats = db.get_saved_lots(code=code)
+
+                        repetition_count = db.get_repetition(code)
+
+                        if repetition_count is None:
+                            db.update_status_stock(code)
+                            db.add_re_lot(code)
+                        elif repetition_count in [1, 2]:
+                            db.update_status_stock(code)
+                            db.update_repetition(code)
+                        elif repetition_count == 3:
+                            db.update_status_deleted(code)
                             await bot.send_message(
                                 chat_id=admin_group,
-                                text=fail_text
+                                text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."
                             )
-                            db.delete_now_lots(code)
-
-                            saved_chats = db.get_saved_lots(code=code)
-
-                            repetition_count = db.get_repetition(code)
-
-                            if repetition_count is None:
-                                db.update_status_stock(code)
-                                db.add_re_lot(code)
-                            elif repetition_count in [1, 2]:
-                                db.update_status_stock(code)
-                                db.update_repetition(code)
-                            elif repetition_count == 3:
-                                db.update_status_deleted(code)
-                                await bot.send_message(
-                                    chat_id=admin_group,
-                                    text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."
-                                )
-
-                            if len(saved_chats) >= 0:
-                                saved_chats.insert(0, (lot_id, channel_id))
-
-                            for elem in saved_chats:
-                                lot_id, chat_id = elem
-                                try:
-                                    await bot.edit_message_caption(
-                                        chat_id=chat_id,
-                                        message_id=lot_id,
-                                        caption=lot_text + f"\n{fail_text}",
-                                    )
-
-                                    await bot.edit_message_reply_markup(
-                                        chat_id=chat_id,
-                                        message_id=lot_id,
-                                        reply_markup=InlineKeyboardMarkup()
-                                    )
-                                except aiogram.exceptions.MessageNotModified:
-                                    return
-
-                        else:
-                            user_bids = db.get_bids_by_tg_id_and_code(tg_id=next_place[0], code=code)
-                            best_bid = max(user_bids, key=lambda x: x[1])
-
-                            first_place = list(best_bid[0])
-                            first_place[-1] = "*"
-                            first_place[-2] = "*"
-                            first_place = "".join(first_place)
-
-                            saved_chats = db.get_saved_lots(code=code)
-                            if len(saved_chats) >= 0:
-                                saved_chats.insert(0, (lot_id, channel_id))
-
-                            await bot.send_message(
-                                chat_id=next_place[0],
-                                text=f"Прошлый победитель отказался выкупать лот.\n"
-                                     f"Поздравляем! Ваша ставка сыграла. ЛОТ №{code} продан вам за {best_bid[1]} руб."
-                                     "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
-                                     "где Вы сможете забрать выигранный лот. "
-                                     "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
-                                reply_markup=winner_markup
-                            )
-
-                            db.add_id_and_code(tg_id=next_place[0], code=code)
-                            for elem in saved_chats:
-                                lot_id, chat_id = elem
-                                try:
-                                    await bot.edit_message_caption(
-                                        chat_id=chat_id,
-                                        message_id=lot_id,
-                                        caption=lot_text + f"\n🥇{first_place}" + f"💰 ИТОГОВАЯ ЦЕНА: {best_bid[1]}",
-                                    )
-
-                                    await bot.edit_message_reply_markup(
-                                        chat_id=chat_id,
-                                        message_id=lot_id,
-                                        reply_markup=InlineKeyboardMarkup()
-                                    )
-                                except aiogram.exceptions.MessageNotModified:
-                                    return
-
-
-                            return
-
-                    else:
-
-                        phone, fullname = db.user_by_id(tg_id=winner)
-                        db.add_winner(tg_id=winner, phone=phone, fullname=fullname, code=code)
-                        saved_chats = db.get_saved_lots(code=code)
-                        winner = winner_places(code, winner=True)
-
-                        await bot.send_message(
-                            chat_id=winner,
-                            text=f"Поздравляем! Ваша ставка сыграла. ЛОТ №{code} продан вам за {lot_price} руб."
-                                 "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
-                                 "где Вы сможете забрать выигранный лот. "
-                                 "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
-                            reply_markup=winner_markup
-                        )
-
-                        db.add_id_and_code(tg_id=winner, code=code)
 
                         if len(saved_chats) >= 0:
                             saved_chats.insert(0, (lot_id, channel_id))
-
-                        # print(saved_chats)
-
+                        print(saved_chats)
                         for elem in saved_chats:
                             lot_id, chat_id = elem
                             try:
                                 await bot.edit_message_caption(
                                     chat_id=chat_id,
                                     message_id=lot_id,
-                                    caption=lot_text + f"{winner}" + f"💰 ИТОГОВАЯ ЦЕНА: {lot_price}"
+                                    caption=lot_text + f" 💰 ИТОГОВАЯ ЦЕНА: {lot_price}",
                                 )
 
                                 await bot.edit_message_reply_markup(
@@ -299,54 +240,144 @@ async def edit_markups():
                                     reply_markup=InlineKeyboardMarkup()
                                 )
                             except aiogram.exceptions.MessageNotModified:
-                                continue
+                                pass
 
-                        return
+                    else:
+                        user_bids = db.get_bids_by_tg_id_and_code(tg_id=next_place[0], code=code)
+                        best_bid = max(user_bids, key=lambda x: x[1])
+
+                        first_place = list(best_bid[0])
+                        first_place[-1] = "*"
+                        first_place[-2] = "*"
+                        first_place = "".join(first_place)
+
+                        saved_chats = db.get_saved_lots(code=code)
+                        if len(saved_chats) >= 0:
+                            saved_chats.insert(0, (lot_id, channel_id))
+
+                        await bot.send_message(
+                            chat_id=next_place[0],
+                            text=f"Прошлый победитель отказался выкупать лот.\n"
+                                 f"Поздравляем! Ваша ставка сыграла. ЛОТ №{code} продан вам за {best_bid[1]} руб."
+                                 "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
+                                 "где Вы сможете забрать выигранный лот. "
+                                 "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
+                            reply_markup=winner_markup
+                        )
+
+                        print(saved_chats)
+                        db.add_id_and_code(tg_id=next_place[0], code=code)
+                        for elem in saved_chats:
+                            lot_id, chat_id = elem
+                            try:
+                                await bot.edit_message_caption(
+                                    chat_id=chat_id,
+                                    message_id=lot_id,
+                                    caption=lot_text + f"\n🥇{first_place}" + f"💰 ИТОГОВАЯ ЦЕНА: {best_bid[1]}",
+                                )
+
+                                await bot.edit_message_reply_markup(
+                                    chat_id=chat_id,
+                                    message_id=lot_id,
+                                    reply_markup=InlineKeyboardMarkup()
+                                )
+                            except aiogram.exceptions.MessageNotModified:
+                                pass
+
+
+
+
                 else:
+
+                    phone, fullname = db.user_by_id(tg_id=winner)
+                    db.add_winner(tg_id=winner, phone=phone, fullname=fullname, code=code)
+                    saved_chats = db.get_saved_lots(code=code)
+
                     await bot.send_message(
-                        chat_id=admin_group,
-                        text=f"Лот №{code} не был никем выкуплен и будет выставлен позже"
+                        chat_id=winner,
+                        text=f"Поздравляем! Ваша ставка сыграла. ЛОТ №{code} продан вам за {lot_price} руб."
+                             "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
+                             "где Вы сможете забрать выигранный лот. "
+                             "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
+                        reply_markup=winner_markup
                     )
 
-                    db.delete_now_lots(code)
-                    saved_chats = db.get_saved_lots(code=code)
-                    repetition_count = db.get_repetition(code)
-
-                    if repetition_count is None:
-                        db.update_status_stock(code)
-                        db.add_re_lot(code)
-                    elif repetition_count in [1, 2]:
-                        db.update_status_stock(code)
-                        db.update_repetition(code)
-                    elif repetition_count == 3:
-                        db.update_status_deleted(code)
-                        await bot.send_message(
-                            chat_id=admin_group,
-                            text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."
-                        )
+                    db.add_id_and_code(tg_id=winner, code=code)
 
                     if len(saved_chats) >= 0:
                         saved_chats.insert(0, (lot_id, channel_id))
 
-                    # print(saved_chats)
-                    try:
-                        for elem in saved_chats:
-                            lot_id, chat_id = elem
+                    print(saved_chats)
+                    winner = winner_places(code, winner=True)
+                    for elem in saved_chats:
+                        lot_id, chat_id = elem
+                        try:
                             await bot.edit_message_caption(
                                 chat_id=chat_id,
                                 message_id=lot_id,
-                                caption=lot_text + f" 💰 ИТОГОВАЯ ЦЕНА: {lot_price}",
+                                caption=lot_text + f"{winner}" + f"💰 ИТОГОВАЯ ЦЕНА: {lot_price}"
                             )
+
                             await bot.edit_message_reply_markup(
                                 chat_id=chat_id,
                                 message_id=lot_id,
                                 reply_markup=InlineKeyboardMarkup()
                             )
-                    except aiogram.exceptions.MessageNotModified:
-                        # print("here we go again")
-                        continue
+                        except aiogram.exceptions.MessageNotModified:
+                            continue
 
-                    return
+
+            else:
+                db.delete_bids(code)
+                db.delete_saved_chats(code)
+                db.delete_places(code)
+                await bot.send_message(
+                    chat_id=admin_group,
+                    text=f"Лот №{code} не был никем выкуплен и будет выставлен позже"
+                )
+
+                db.delete_now_lots(code)
+                saved_chats = db.get_saved_lots(code=code)
+                repetition_count = db.get_repetition(code)
+                print(f"{code =} {repetition_count =}")
+                if repetition_count is None:
+                    db.update_status_stock(code)
+                    db.add_re_lot(code)
+                elif repetition_count in [1, 2]:
+                    db.update_status_stock(code)
+                    db.update_repetition(code)
+                elif repetition_count == 3:
+                    db.update_status_deleted(code)
+                    await bot.send_message(
+                        chat_id=admin_group,
+                        text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."
+                    )
+
+                if len(saved_chats) >= 0:
+                    saved_chats.insert(0, (lot_id, channel_id))
+
+                print(saved_chats)
+                try:
+                    for elem in saved_chats:
+                        lot_id, chat_id = elem
+                        await bot.edit_message_caption(
+                            chat_id=chat_id,
+                            message_id=lot_id,
+                            caption=lot_text + f" 💰 ИТОГОВАЯ ЦЕНА: {lot_price}",
+                        )
+                        await bot.edit_message_reply_markup(
+                            chat_id=chat_id,
+                            message_id=lot_id,
+                            reply_markup=InlineKeyboardMarkup()
+                        )
+                except aiogram.exceptions.MessageNotModified:
+                    # try:
+                    #
+                    # except aiogram.exceptions.MessageNotModified:
+                    # # print("here we go again")
+                    continue
+
+                pass
     return
 
 
@@ -354,27 +385,30 @@ async def edit_markups():
 
 
 async def reminder():
+    global reminder_end_msg
     weekday = datetime.now().weekday() + 1
     if weekday in [1, 2, 3, 4, 5, 6, 7]:
         bot, db = get_bot_and_db()
         codes = db.get_lots_codes()
 
         if len(codes) > 0:
-            await bot.send_message(
+            reminder_end_msg = await bot.send_message(
                 chat_id=channel_id,
                 text="До конца аукциона осталось 10 мин. Успейте сделать последние ставки!"
             )
         return
     return
 
+
 async def reminder_beggining():
+    global reminder_begin_msg
     weekday = datetime.now().weekday() + 1
     if weekday in [1, 2, 3, 4, 5, 6, 7]:
         bot, db = get_bot_and_db()
         codes = db.get_lots_codes()
 
         if len(codes) > 0:
-            await bot.send_message(
+            reminder_begin_msg = await bot.send_message(
                 chat_id=channel_id,
                 text="До начала аукциона осталось 10 мин. Успейте сделать ставки!"
             )
@@ -383,11 +417,11 @@ async def reminder_beggining():
 
 
 async def scheduler():
-    aioschedule.every().day.at("12:00").do(edit_lots) # 12:00
+    aioschedule.every().day.at("16:29").do(edit_lots) # 12:00
     aioschedule.every().day.at("12:50").do(reminder) # 12:50
-    aioschedule.every().day.at("11:50").do(reminder_beggining) # 11:50
-    aioschedule.every().day.at("13:00").do(edit_markups) # 13:00
-    aioschedule.every().day.at("18:30").do(start_auction) # 18:30
+    aioschedule.every().day.at("12:50").do(reminder_beggining) # 11:50
+    aioschedule.every().day.at("16:29").do(edit_markups) # 13:00
+    aioschedule.every().day.at("16:28").do(start_auction) # 18:30
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)

@@ -196,6 +196,24 @@ class Database:
         )
         self.conn.commit()
 
+    def delete_places(self, code):
+        self.cur.execute(
+            f"""
+            DELETE FROM places
+            WHERE code='{code}'
+            """
+        )
+        self.conn.commit()
+
+    def delete_saved_chats(self, code):
+        self.cur.execute(
+            f"""
+            DELETE FROM saved_lots
+            WHERE code='{code}'
+            """
+        )
+        self.conn.commit()
+
     def delete_id_and_codes(self, tg_id, code):
         self.cur.execute(
             f"""
@@ -439,7 +457,6 @@ class Database:
             f"""
             SELECT repetition FROM re_lots
             WHERE code='{code}'
-            AND repetition < 3
             """
         ).fetchone()
         self.conn.commit()
@@ -618,13 +635,6 @@ class Database:
             return []
         return saved_lots
 
-    def delete_saved_lots(self, code):
-        self.cur.execute(
-            f"""
-            DELETE FROM saved_lots
-            WHERE code='{code}'
-            """
-        )
     def add_bid(self, tg_id, username, lot_price, code):
         info = (tg_id, username, lot_price, code)
         self.cur.execute(
@@ -906,7 +916,6 @@ class Database:
             f"""
             SELECT lot_id, lot_text, lot_price FROM now_lots
             WHERE code='{code}'
-
             """
         ).fetchone()
 
@@ -988,12 +997,12 @@ class Database:
         minutes, hours = time.split("_")
         return minutes, hours
 
-    def get_three_lots(self):
+    def get_five_lots(self):
         three_lots = self.cur.execute(
             f"""
             SELECT name, model, code, storage, season, tires, disks, price, photo, status FROM lots
             WHERE status="stock"
-            LIMIT 3
+            LIMIT 5
             """
         ).fetchall()
 
