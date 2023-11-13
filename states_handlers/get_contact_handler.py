@@ -5,15 +5,17 @@ from states_handlers.bot_states import RegistrationStates
 
 
 async def get_contact_handler(message, state):
-    print(1)
     chat = message.chat.id
     contact = message.contact.phone_number
     bot, db = get_bot_and_db()
 
+    print(message)
     contact = str(contact)
     if contact[0] == "8":
         contact = contact.replace("8", "7", 1)
 
+    elif contact[0] == "+":
+        contact = contact.replace("+7", "7", 1)
 
     phones = db.get_phones()
     admin_phones = db.get_admin_phones()

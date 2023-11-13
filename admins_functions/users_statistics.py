@@ -29,8 +29,8 @@ async def get_users_statistics(tg_id):
             row += 1
 
             phone, fullname = db.user_by_id(user_id)
-            raise_bid = set(*db.get_bids_codes(user_id)) # code Количество аукционов в которых принимал участие (лот добавлен в избранное или сделана ставка)
-            save_lots = set(*db.get_saved_lots_codes(user_id)) # code, tg_id
+            raise_bid = set(db.get_bids_codes(user_id)) # code Количество аукционов в которых принимал участие (лот добавлен в избранное или сделана ставка)
+            save_lots = set(db.get_saved_lots_codes(user_id)) # code, tg_id
             take_part = len(raise_bid.union(save_lots))
             bids_count = len(db.get_bids_codes(user_id)) # количество ставок
             ransoms_count = len(db.get_ransom_price(user_id)) # количество выкупов

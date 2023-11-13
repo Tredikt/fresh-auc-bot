@@ -150,6 +150,49 @@ class Database:
             )
             """
         )
+
+        self.cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reminders(
+                message_id INTEGER,
+                stage TEXT
+            )
+            """
+        )
+
+        self.conn.commit()
+
+    def get_reminder_id(self, stage):
+        message_id = self.cur.execute(
+            f"""
+            SELECT message_id FROM reminders
+            WHERE stage='{stage}'
+            """
+        ).fetchone()
+
+        if message_id is None:
+            return None
+        message_id = message_id[0]
+        return message_id
+
+    def delete_reminder_id(self, stage):
+        self.cur.execute(
+            f"""
+            DELETE FROM reminders
+            WHERE stage='{stage}'
+            """
+        )
+
+    def add_reminders_id(self, message_id, stage):
+        self.cur.execute(
+            f"""
+            INSERT OR REPLACE INTO reminders
+            (message_id, stage)
+            VALUES
+            ({message_id}, '{stage}')
+            """
+        )
+
         self.conn.commit()
 
     def get_id_and_codes(self):
@@ -286,7 +329,7 @@ class Database:
             WHERE code='{code}'
             """
         ).fetchall()
-        print(places_ids, "places_ids")
+        # print(places_ids, "places_ids")
         if places_ids is None:
             return {}
         places_dict = {elem[0]: elem[1] for elem in places_ids}
@@ -434,6 +477,7 @@ class Database:
         codes = self.cur.execute(
             """
             SELECT code FROM re_lots
+            WHERE repetition < 3
             """
         ).fetchall()
 
@@ -920,7 +964,7 @@ class Database:
         ).fetchone()
 
         self.conn.commit()
-        print(lot)
+        # print(lot)
         return lot
 
     def update_price(self, code, price):

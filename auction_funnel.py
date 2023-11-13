@@ -10,16 +10,12 @@ import aiogram
 from datetime import datetime
 from config import channel_id, admin_group
 
-reminder_begin_msg = None
-reminder_end_msg = None
-
 
 async def start_auction():
     weekday = datetime.now().weekday() + 1
     if weekday in [1, 2, 3, 4, 5, 6]:
         bot, db = get_bot_and_db()
         five_lots = db.get_five_lots()
-        print(len(five_lots), "len(five_lots)")
         relots_codes = db.get_re_lot()
 
         lots_for_auc = []
@@ -37,7 +33,6 @@ async def start_auction():
                 if elem not in lots_for_auc:
                     lots_for_auc.append(elem)
 
-        print(len(lots_for_auc))
         for elem in lots_for_auc:
             name, model, code, storage, season, tires, disks, price, photo, status = elem
             #
@@ -63,7 +58,7 @@ async def start_auction():
             #     )
             # )
 
-            if disks is not None:
+            if disks is not None and disks.lower() not in ["хорошее", "плохое", "среднее", "отличное", "мало шипов. плохое"]:
                 text = f"🔥 СТАРТ {price} ₽🔥\n\n" \
                        f"✅ {model}\n" \
                        f"✅ Шины {disks}\n" \
@@ -71,7 +66,7 @@ async def start_auction():
                        f"✅ {season}\n" \
                        f"🌍 Место склада {storage}\n\n" \
                         f"❗️ Продолжительность аукциона - 1 час ❗️ \n\n" \
-                        f"Администратор аукциона: @KristinaBashmakova\n\n" \
+                        f"Администратор аукциона: @akulovrus\n\n" \
                         f"📌 Лот № {code}\n"
             else:
                 text = f"🔥 СТАРТ {price} ₽🔥\n\n" \
@@ -80,7 +75,7 @@ async def start_auction():
                        f"✅ {season}\n" \
                        f"🌍 Место склада {storage}\n\n" \
                        f"❗️ Продолжительность аукциона - 1 час ❗️\n\n" \
-                       f"Администратор аукциона: @KristinaBashmakova\n\n" \
+                       f"Администратор аукциона: @akulovrus\n\n" \
                        f"📌 Лот № {code}\n"
             db.update_status_auction(code)
 
@@ -96,7 +91,7 @@ async def start_auction():
             )
 
             db.add_auc_lot(lot_id=auc_message.message_id, lot_text=text, lot_price=price, code=code)
-            # await asyncio.sleep(15 * 60)
+            await asyncio.sleep(3 * 60)
 
 
 async def edit_lots():
@@ -106,10 +101,12 @@ async def edit_lots():
         bot, db = get_bot_and_db()
 
         try:
-            bot.delete_message(
+            reminder_begin_msg = db.get_reminder_id(stage="begin")
+            await bot.delete_message(
                 chat_id=channel_id,
-                message_id=reminder_begin_msg.message_id
+                message_id=reminder_begin_msg
             )
+            db.delete_reminder_id(stage="begin")
         except Exception:
             pass
 
@@ -157,21 +154,22 @@ async def edit_lots():
 
 
 async def edit_markups():
+    global reminder_end_msg
     weekday = datetime.now().weekday() + 1
     # if True:
     if weekday in [1, 2, 3, 4, 5, 6, 7]:
         bot, db = get_bot_and_db()
         try:
-            bot.delete_message(
+            reminder_end_msg = db.get_reminder_id(stage="end")
+            await bot.delete_message(
                 chat_id=channel_id,
-                message_id=reminder_end_msg.message_id
+                message_id=reminder_end_msg
             )
+            db.delete_reminder_id(stage="end")
         except Exception:
             pass
         codes = db.get_lots_codes()
-        print('codes', codes)
         for code in codes:
-            print("code", code)
             name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
             lot_id, lot_text, lot_price = db.get_selling_lot(code)
             winners = winner_places(code, winner=True)
@@ -224,7 +222,7 @@ async def edit_markups():
 
                         if len(saved_chats) >= 0:
                             saved_chats.insert(0, (lot_id, channel_id))
-                        print(saved_chats)
+
                         for elem in saved_chats:
                             lot_id, chat_id = elem
                             try:
@@ -265,7 +263,6 @@ async def edit_markups():
                             reply_markup=winner_markup
                         )
 
-                        print(saved_chats)
                         db.add_id_and_code(tg_id=next_place[0], code=code)
                         for elem in saved_chats:
                             lot_id, chat_id = elem
@@ -307,7 +304,6 @@ async def edit_markups():
                     if len(saved_chats) >= 0:
                         saved_chats.insert(0, (lot_id, channel_id))
 
-                    print(saved_chats)
                     winner = winner_places(code, winner=True)
                     for elem in saved_chats:
                         lot_id, chat_id = elem
@@ -339,7 +335,6 @@ async def edit_markups():
                 db.delete_now_lots(code)
                 saved_chats = db.get_saved_lots(code=code)
                 repetition_count = db.get_repetition(code)
-                print(f"{code =} {repetition_count =}")
                 if repetition_count is None:
                     db.update_status_stock(code)
                     db.add_re_lot(code)
@@ -356,7 +351,6 @@ async def edit_markups():
                 if len(saved_chats) >= 0:
                     saved_chats.insert(0, (lot_id, channel_id))
 
-                print(saved_chats)
                 try:
                     for elem in saved_chats:
                         lot_id, chat_id = elem
@@ -381,11 +375,7 @@ async def edit_markups():
     return
 
 
-
-
-
 async def reminder():
-    global reminder_end_msg
     weekday = datetime.now().weekday() + 1
     if weekday in [1, 2, 3, 4, 5, 6, 7]:
         bot, db = get_bot_and_db()
@@ -396,32 +386,39 @@ async def reminder():
                 chat_id=channel_id,
                 text="До конца аукциона осталось 10 мин. Успейте сделать последние ставки!"
             )
-        return
-    return
-
-
-async def reminder_beggining():
-    global reminder_begin_msg
-    weekday = datetime.now().weekday() + 1
-    if weekday in [1, 2, 3, 4, 5, 6, 7]:
-        bot, db = get_bot_and_db()
-        codes = db.get_lots_codes()
-
-        if len(codes) > 0:
-            reminder_begin_msg = await bot.send_message(
-                chat_id=channel_id,
-                text="До начала аукциона осталось 10 мин. Успейте сделать ставки!"
+            db.add_reminders_id(
+                message_id=reminder_end_msg.message_id,
+                stage="end"
             )
         return
     return
 
 
+async def reminder_beggining():
+    weekday = datetime.now().weekday() + 1
+    if weekday in [1, 2, 3, 4, 5, 6, 7]:
+        bot, db = get_bot_and_db()
+        codes = db.get_lots_codes()
+
+        # if len(codes) > 0:
+        reminder_begin_msg = await bot.send_message(
+            chat_id=channel_id,
+            text="До начала аукциона осталось 10 мин. Успейте сделать ставки!"
+        )
+        db.add_reminders_id(
+            message_id=reminder_begin_msg.message_id,
+            stage="begin"
+        )
+        # return
+    return
+
+
 async def scheduler():
-    aioschedule.every().day.at("16:29").do(edit_lots) # 12:00
+    aioschedule.every().day.at("12:00").do(edit_lots) # 12:00
     aioschedule.every().day.at("12:50").do(reminder) # 12:50
-    aioschedule.every().day.at("12:50").do(reminder_beggining) # 11:50
-    aioschedule.every().day.at("16:29").do(edit_markups) # 13:00
-    aioschedule.every().day.at("16:28").do(start_auction) # 18:30
+    aioschedule.every().day.at("11:50").do(reminder_beggining) # 11:50
+    aioschedule.every().day.at("13:00").do(edit_markups) # 13:00
+    aioschedule.every().day.at("20:50").do(start_auction) # 18:30
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)

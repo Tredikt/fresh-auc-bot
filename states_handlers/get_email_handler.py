@@ -9,16 +9,7 @@ async def get_email_handler(message, state):
     email_address = message.text
     chat = message.chat.id
 
-    validation = validate(
-        email_address=email_address,
-        check_format=True,
-        check_blacklist=True,
-        check_dns=True,
-        dns_timeout=10,
-        check_smtp=False,
-        smtp_debug=False)
-
-    if validation:
+    if "@" in email_address:
         async with state.proxy() as data:
             data["email"] = email_address
 
@@ -28,7 +19,7 @@ async def get_email_handler(message, state):
         )
         await RegistrationStates.next()
 
-    elif not validation:
+    elif "@" not in email_address:
         await bot.send_message(
             chat_id=chat,
             text=decline_email

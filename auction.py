@@ -152,13 +152,21 @@ class AucBot:
             )
 
     async def winner_text_handler(self, message, state):
-        tg_id = message.from_user.id
+        chat_id = message.chat.id
         text = message.text
         username = message.from_user.username
         tg_id = message.from_user.id
         admins = self.db.get_admins()
         blocked_users = self.db.get_blocked_users()
         id_and_codes = self.db.get_id_and_codes()
+
+        if chat_id == -1002127006977:
+            if tg_id not in admins:
+                await self.bot.delete_message(
+                    chat_id=chat_id,
+                    message_id=message.message_id
+                )
+
         if tg_id in blocked_users and text.lower() != "обжаловать":
             await self.bot.send_message(
                 chat_id=tg_id,
@@ -201,7 +209,7 @@ class AucBot:
                          f"Имя: {fullname}\n"
                          f"Тг: {username}\n"
                          f"Телефон: +{phone}\n"
-                         f"Итоговая цена: {best_bid[0]}"
+                         f"Итоговая цена: {best_bid[1]}"
                 )
 
                 self.db.delete_id_and_codes(tg_id, id_and_codes[tg_id])

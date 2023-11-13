@@ -23,12 +23,12 @@ async def get_lots_statistics(tg_id):
         raise_bids = set(db.get_bids_ids(code=code))
         save_lots = set(db.get_saved_lots_ids(code=code))
         take_part = len(raise_bids.union(save_lots))
-        name, model, code, storage, season, tires, disks, price, photo = db.get_lot(code)
+        name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
         last_price = db.get_last_price(code)
 
         percentage = 0
         if last_price != 0:
-            percentage = last_price / price * 100 - 100
+            percentage = last_price / int(price.split(".")[0]) * 100 - 100
 
         row += 1
         worksheet.write(row, 0, take_part)

@@ -1,9 +1,11 @@
 from get_bot_and_db import get_bot_and_db
 from blanks.bot_examinations import examination_symbols
 from blanks.bot_texts import accept_company, decline_company
+from blanks.bot_markups import remove_markup
 
 from states_handlers.bot_states import RegistrationStates
 from config import channel_id
+
 
 async def get_company_handler(message, state):
     chat = message.chat.id
@@ -45,7 +47,8 @@ async def get_company_handler(message, state):
         await bot.send_message(
             chat_id=chat,
             text="Вы добавлены в закрытый канал FRESH — Шинный аукцион!\n"
-                 "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link) + "\nТак же прочитайте правила по команде /rules"
+                 "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link) + "\nТак же прочитайте правила по команде /rules",
+            reply_markup=remove_markup
         )
 
         await state.finish()
@@ -92,7 +95,8 @@ async def get_company_handler(message, state):
             await bot.send_message(
                 chat_id=chat,
                 text="Вы добавлены в закрытый канал FRESH — Шинный аукцион!\n"
-                     "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link) + "\nТак же прочитайте правила по команде /rules"
+                     "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link) + "\nТак же прочитайте правила по команде /rules",
+                reply_markup=remove_markup
             )
 
             await state.finish()
