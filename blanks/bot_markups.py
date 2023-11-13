@@ -63,10 +63,15 @@ with open("regions.txt", "r", encoding="UTF-8") as file:
 
 # админы
 admin_markup = InlineKeyboardMarkup()
-admin_markup.add(
+(admin_markup.add(
     InlineKeyboardButton(
         text="Выгрузить лоты",
         callback_data="upload_lots"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Удалить лот из базы",
+        callback_data="delete_lot_admin"
     )
 ).add(
     InlineKeyboardButton(
@@ -103,7 +108,7 @@ admin_markup.add(
         text="О торгах",
         callback_data="statistics_auction"
     )
-)
+))
 
 admin_back = InlineKeyboardMarkup()
 admin_back.add(InlineKeyboardButton(

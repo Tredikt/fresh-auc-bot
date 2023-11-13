@@ -1,6 +1,6 @@
 from get_bot_and_db import get_bot_and_db
 from states_handlers.bot_states import AdminStates
-from blanks.bot_texts import admin_add_partner, admin_add_admin, admin_text, admin_delete_partner, admin_delete_admin
+from blanks.bot_texts import admin_add_partner, admin_add_admin, admin_text, admin_delete_partner, admin_delete_admin, delete_lot_st
 from blanks.bot_markups import admin_back, admin_markup
 from datetime import datetime
 from admins_functions.winner_places import winner_places
@@ -224,7 +224,7 @@ async def admin_callback_handler(call, state):
             )
             db.save_lot(lot_id=saved_lot.message_id, chat_id=tg_id, code=code)
 
-        elif callback[:6] == "delete" and callback not in ["delete_partner", "delete_admin"]:
+        elif callback[:6] == "delete" and callback not in ["delete_partner", "delete_admin", "delete_lot_admin"]:
             await bot.delete_message(
                 chat_id=tg_id,
                 message_id=m_id
@@ -345,6 +345,19 @@ async def admin_callback_handler(call, state):
                 reply_markup=admin_back
             )
             await AdminStates.delete_admin.set()
+
+        elif callback == "delete_lot_admin":
+            await bot.delete_message(
+                chat_id=chat,
+                message_id=m_id
+            )
+
+            await bot.send_message(
+                chat_id=chat,
+                text=delete_lot_st,
+                reply_markup=admin_back
+            )
+            await AdminStates.delete_lot.set()
 
         elif callback == "statistics_users":
             await get_users_statistics(tg_id=tg_id)

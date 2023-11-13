@@ -516,7 +516,27 @@ class Database:
             WHERE code='{code}'
             """
         )
+
+        self.cur.execute(
+            f"""
+            DELETE FROM re_lots
+            WHERE code='{code}'
+            """
+        )
+
         self.conn.commit()
+
+    def delete_info_about_lot(self, code):
+        db_names_list = ["id_and_codes", "lots", "re_lots", "bids", "saved_lots", "places"]
+
+        for name in db_names_list:
+            self.cur.execute(
+                f"""
+                DELETE FROM {name}
+                WHERE code='{code}'
+                """
+            )
+            self.conn.commit()
 
     def delete_now_lots(self, code):
         self.cur.execute(

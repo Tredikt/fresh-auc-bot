@@ -61,7 +61,7 @@ async def start_auction():
             if disks is not None and disks.lower() not in ["хорошее", "плохое", "среднее", "отличное", "мало шипов. плохое"]:
                 text = f"🔥 СТАРТ {price} ₽🔥\n\n" \
                        f"✅ {model}\n" \
-                       f"✅ Шины {disks}\n" \
+                       f"✅ Колёса {disks}\n" \
                        f"✅ {tires}\n" \
                        f"✅ {season}\n" \
                        f"🌍 Место склада {storage}\n\n" \
@@ -71,7 +71,7 @@ async def start_auction():
             else:
                 text = f"🔥 СТАРТ {price} ₽🔥\n\n" \
                        f"✅ {model}\n" \
-                       f"✅ {tires}\n" \
+                       f"✅ Шины {tires}\n" \
                        f"✅ {season}\n" \
                        f"🌍 Место склада {storage}\n\n" \
                        f"❗️ Продолжительность аукциона - 1 час ❗️\n\n" \
@@ -214,7 +214,8 @@ async def edit_markups():
                             db.update_status_stock(code)
                             db.update_repetition(code)
                         elif repetition_count == 3:
-                            db.update_status_deleted(code)
+                            # db.update_status_deleted(code)
+                            db.delete_lot(code)
                             await bot.send_message(
                                 chat_id=admin_group,
                                 text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."
@@ -342,7 +343,7 @@ async def edit_markups():
                     db.update_status_stock(code)
                     db.update_repetition(code)
                 elif repetition_count == 3:
-                    db.update_status_deleted(code)
+                    db.delete_lot(code)
                     await bot.send_message(
                         chat_id=admin_group,
                         text=f"Лот №{code} удалён, так как никто не выкупил его в течении 3 дней."

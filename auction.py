@@ -25,6 +25,7 @@ from admins_functions.add_partner_handler import add_partner_handler
 from admins_functions.add_admin_handler import add_admin_handler
 from admins_functions.delete_admin_handler import delete_admin_handler
 from admins_functions.delete_partner_handler import delete_partner_handler
+from admins_functions.delete_lot_handler import delete_lot_handler
 from requests import request
 import logging
 from datetime import datetime
@@ -243,7 +244,7 @@ class AucBot:
                                 self.db.update_status_stock(id_and_codes[tg_id])
                                 self.db.update_repetition(id_and_codes[tg_id])
                             elif repetition_count == 3:
-                                self.db.update_status_deleted(id_and_codes[tg_id])
+                                self.db.delete_lot(id_and_codes[tg_id])
                                 await self.bot.send_message(
                                     chat_id=admin_group,
                                     text=f"Лот №{id_and_codes[tg_id]} удалён, так как никто не выкупил его в течении 3 дней."
@@ -339,7 +340,9 @@ class AucBot:
         self.dp.register_message_handler(callback=delete_partner_handler, state=AdminStates.delete_partner,
                                          content_types=["text", "contact"])
         self.dp.register_message_handler(callback=delete_admin_handler, state=AdminStates.delete_admin,
-                                         content_types=["text", "contact"])
+                                         content_types=["text", "contact"]),
+        self.dp.register_message_handler(callback=delete_lot_handler, state=AdminStates.delete_lot,
+                                         content_types=["text"])
         self.dp.register_message_handler(callback=get_contact_handler, content_types=ContentTypes.CONTACT, state=RegistrationStates.phone)
         self.dp.register_message_handler(callback=get_email_handler, content_types=ContentTypes.TEXT, state=RegistrationStates.email)
         self.dp.register_message_handler(callback=get_fullname_handler, content_types=ContentTypes.TEXT, state=RegistrationStates.fullname)
