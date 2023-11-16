@@ -25,15 +25,6 @@ class Database:
 
         self.cur.execute(
             """
-            CREATE TABLE IF NOT EXISTS id_and_codes(
-                tg_id INTEGER,
-                code TEXT
-            )
-            """
-        )
-
-        self.cur.execute(
-            """
             CREATE TABLE IF NOT EXISTS registration_passed(
                 tg_id INTEGER
             )
@@ -195,39 +186,6 @@ class Database:
 
         self.conn.commit()
 
-    def get_id_and_codes(self):
-        id_and_codes = self.cur.execute(
-            """
-            SELECT tg_id, code FROM id_and_codes
-            """
-        ).fetchall()
-
-        if id_and_codes is not None:
-            codes_dict = {elem[0]: elem[1] for elem in id_and_codes}
-            return codes_dict
-        return []
-
-    def add_id_and_code(self, tg_id, code):
-        self.cur.execute(
-            f"""
-            DELETE FROM id_and_codes
-            WHERE tg_id={tg_id}
-            AND code='{code}'
-            """
-        )
-
-        self.conn.commit()
-
-        self.cur.execute(
-            f"""
-            INSERT INTO id_and_codes
-            (tg_id, code)
-            VALUES
-            (?, ?);
-            """,
-            (tg_id, code)
-        )
-
         self.conn.commit()
 
     def delete_bids(self, code):
@@ -255,17 +213,6 @@ class Database:
             WHERE code='{code}'
             """
         )
-        self.conn.commit()
-
-    def delete_id_and_codes(self, tg_id, code):
-        self.cur.execute(
-            f"""
-                    DELETE FROM id_and_codes
-                    WHERE tg_id={tg_id}
-                    AND code='{code}'
-                    """
-        )
-
         self.conn.commit()
 
     def get_photo_by_code(self, code):
@@ -527,7 +474,7 @@ class Database:
         self.conn.commit()
 
     def delete_info_about_lot(self, code):
-        db_names_list = ["id_and_codes", "lots", "re_lots", "bids", "saved_lots", "places"]
+        db_names_list = ["lots", "re_lots", "bids", "saved_lots", "places"]
 
         for name in db_names_list:
             self.cur.execute(
@@ -997,15 +944,34 @@ class Database:
         )
         self.conn.commit()
 
+    def update_now_lot_price_and_text(self, new_lot_price, new_lot_text, code):
+        self.cur.execute(
+            f"""
+            UPDATE now_lots
+            SET lot_price={new_lot_price}
+            SET lot_text='{new_lot_text}'
+            WHERE code='{code}'
+            """
+        )
     def add_auc_lot(self, lot_id, lot_text, lot_price, code):
         self.cur.execute(
             """
-            INSERT INTO now_lots
+            INSERT OR REPLACE INTO now_lots
             (lot_id, lot_text, lot_price, code)
             VALUES
             (?, ?, ?, ?)
             """,
             (lot_id, lot_text, lot_price, code)
+        )
+        self.conn.commit()
+
+    def edit_lot_price(self, code, new_price):
+        self.cur.execute(
+            f"""
+            UPDATE lots
+            SET price='{new_price}'
+            WHERE code='{code}'
+            """
         )
         self.conn.commit()
 
@@ -1038,6 +1004,7 @@ class Database:
             """
         )
         self.conn.commit()
+
 
     def update_status_sell(self, code):
         self.cur.execute(

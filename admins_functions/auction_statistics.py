@@ -38,8 +38,14 @@ async def get_auction_statistics(tg_id):
         name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
         last_price = db.get_last_price(code)
         percentage = 0
+
+        try:
+            price = int(price)
+        except Exception:
+            price = int(price.split(".")[0])
+
         if last_price != 0:
-            percentage = last_price / int(price.split(".")[0]) * 100 - 100 # прирост цены (%)
+            percentage = last_price / price * 100 - 100 # прирост цены (%)
         prices_list.append(percentage)
     else:
         count = 1

@@ -1,11 +1,8 @@
 import aioschedule
-from states_handlers.bot_states import AuctionStates
 from get_bot_and_db import get_bot_and_db
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import asyncio
 from admins_functions.winner_places import winner_places
-from blanks.bot_markups import winner_markup
-from auction import auc_bot
 import aiogram
 from datetime import datetime
 from config import channel_id, admin_group
@@ -13,50 +10,30 @@ from config import channel_id, admin_group
 
 async def start_auction():
     weekday = datetime.now().weekday() + 1
-    if weekday in [1, 2, 3, 4, 5, 6]:
+    if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
         five_lots = db.get_five_lots()
         relots_codes = db.get_re_lot()
+        all_codes = db.get_all_codes()
 
         lots_for_auc = []
         for num, code in enumerate(relots_codes):
-            if num == 5:
-                break
+            # if num == 5:
+            #     break
+
             lots_for_auc.append(
                 db.get_lot(code)
             )
 
-        if len(lots_for_auc) < 5:
+        if len(lots_for_auc) < 50:
             for num, elem in enumerate(five_lots):
-                if 5 - len(lots_for_auc) == 0:
+                if 50 - len(lots_for_auc) == 0:
                     break
                 if elem not in lots_for_auc:
                     lots_for_auc.append(elem)
 
         for elem in lots_for_auc:
             name, model, code, storage, season, tires, disks, price, photo, status = elem
-            #
-            # if int(tires[-2:]) >= 18:
-            #     auc_price = "+ 500р."
-            # else:
-            #     auc_price = "+ 250р."
-
-            # markup = InlineKeyboardMarkup()
-            # markup.add(
-            #     InlineKeyboardButton(
-            #         text=auc_price, callback_data=f"raiseprice_{code}"
-            #     )
-            # ).add(
-            #     InlineKeyboardButton(
-            #         text="💾", callback_data=f"save_{code}"
-            #     ),
-            #     InlineKeyboardButton(
-            #         text="⏳", callback_data=f"time_{code}"
-            #     ),
-            #     InlineKeyboardButton(
-            #         text="⚠️", callback_data="warning"
-            #     )
-            # )
 
             if disks is not None and disks.lower() not in ["хорошее", "плохое", "среднее", "отличное", "мало шипов. плохое"]:
                 text = f"🔥 СТАРТ {price} ₽🔥\n\n" \
@@ -91,13 +68,13 @@ async def start_auction():
             )
 
             db.add_auc_lot(lot_id=auc_message.message_id, lot_text=text, lot_price=price, code=code)
-            await asyncio.sleep(3 * 60)
+            # await asyncio.sleep(7 * 60)
 
 
 async def edit_lots():
     weekday = datetime.now().weekday() + 1
     # if True:
-    if weekday in [1, 2, 3, 4, 5, 6, 7]:
+    if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
 
         try:
@@ -150,6 +127,8 @@ async def edit_lots():
                 )
             except aiogram.exceptions.MessageIdInvalid:
                 continue
+            except aiogram.exceptions.MessageNotModified:
+                continue
     return
 
 
@@ -157,7 +136,7 @@ async def edit_markups():
     global reminder_end_msg
     weekday = datetime.now().weekday() + 1
     # if True:
-    if weekday in [1, 2, 3, 4, 5, 6, 7]:
+    if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
         try:
             reminder_end_msg = db.get_reminder_id(stage="end")
@@ -205,6 +184,18 @@ async def edit_markups():
                         db.delete_places(code)
                         saved_chats = db.get_saved_lots(code=code)
 
+                        name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+                        try:
+                            price = int(price)
+                        except ValueError:
+                            price = int(price.split(".")[0])
+
+                        new_price = price - (price * 0.3)
+                        new_price = list(str(new_price))
+                        new_price[-3] = "0"
+                        new_price = "".join(new_price)
+                        db.edit_lot_price(code, new_price)
+
                         repetition_count = db.get_repetition(code)
 
                         if repetition_count is None:
@@ -241,13 +232,25 @@ async def edit_markups():
                             except aiogram.exceptions.MessageNotModified:
                                 pass
 
+                            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+                            try:
+                                price = int(price)
+                            except ValueError:
+                                price = int(price.split(".")[0])
+
+                            new_price = price - (price * 0.3)
+                            new_price = str(new_price).split()
+                            new_price[-1] = "0"
+                            new_price = int("".join(new_price))
+                            db.edit_lot_price(code, new_price)
+
                     else:
                         user_bids = db.get_bids_by_tg_id_and_code(tg_id=next_place[0], code=code)
                         best_bid = max(user_bids, key=lambda x: x[1])
 
                         first_place = list(best_bid[0])
-                        first_place[-1] = "*"
-                        first_place[-2] = "*"
+                        for num in range(1, len(first_place) - 1):
+                            first_place[-num] = "*"
                         first_place = "".join(first_place)
 
                         saved_chats = db.get_saved_lots(code=code)
@@ -261,10 +264,18 @@ async def edit_markups():
                                  "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
                                  "где Вы сможете забрать выигранный лот. "
                                  "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
-                            reply_markup=winner_markup
-                        )
+                            reply_markup=InlineKeyboardMarkup().add(
+                                InlineKeyboardButton(
+                                    text="Хорошо, жду",
+                                    callback_data=f"waiting_{code}"
+                                )
+                            ).add(
+                            InlineKeyboardButton(
+                                text="Передумал",
+                                callback_data=f"refusial_{code}"
+                            )
+                            ))
 
-                        db.add_id_and_code(tg_id=next_place[0], code=code)
                         for elem in saved_chats:
                             lot_id, chat_id = elem
                             try:
@@ -282,9 +293,6 @@ async def edit_markups():
                             except aiogram.exceptions.MessageNotModified:
                                 pass
 
-
-
-
                 else:
 
                     phone, fullname = db.user_by_id(tg_id=winner)
@@ -297,10 +305,18 @@ async def edit_markups():
                              "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
                              "где Вы сможете забрать выигранный лот. "
                              "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
-                        reply_markup=winner_markup
+                        reply_markup=InlineKeyboardMarkup().add(
+                                InlineKeyboardButton(
+                                    text="Хорошо, жду",
+                                    callback_data=f"waiting_{code}"
+                                )
+                            ).add(
+                            InlineKeyboardButton(
+                                text="Передумал",
+                                callback_data=f"refusial_{code}"
+                            )
+                        )
                     )
-
-                    db.add_id_and_code(tg_id=winner, code=code)
 
                     if len(saved_chats) >= 0:
                         saved_chats.insert(0, (lot_id, channel_id))
@@ -335,7 +351,20 @@ async def edit_markups():
 
                 db.delete_now_lots(code)
                 saved_chats = db.get_saved_lots(code=code)
+                name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+                try:
+                    price = int(price)
+                except ValueError:
+                    price = int(price.split(".")[0])
+
+                new_price = price - (price * 0.3)
+                new_price = list(str(new_price))
+                new_price[-3] = "0"
+                new_price = "".join(new_price)
+                db.edit_lot_price(code, new_price)
+
                 repetition_count = db.get_repetition(code)
+
                 if repetition_count is None:
                     db.update_status_stock(code)
                     db.add_re_lot(code)
@@ -371,14 +400,13 @@ async def edit_markups():
                     # except aiogram.exceptions.MessageNotModified:
                     # # print("here we go again")
                     continue
-
                 pass
     return
 
 
 async def reminder():
     weekday = datetime.now().weekday() + 1
-    if weekday in [1, 2, 3, 4, 5, 6, 7]:
+    if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
         codes = db.get_lots_codes()
 
@@ -397,20 +425,20 @@ async def reminder():
 
 async def reminder_beggining():
     weekday = datetime.now().weekday() + 1
-    if weekday in [1, 2, 3, 4, 5, 6, 7]:
+    if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
         codes = db.get_lots_codes()
 
-        # if len(codes) > 0:
-        reminder_begin_msg = await bot.send_message(
-            chat_id=channel_id,
-            text="До начала аукциона осталось 10 мин. Успейте сделать ставки!"
-        )
-        db.add_reminders_id(
-            message_id=reminder_begin_msg.message_id,
-            stage="begin"
-        )
-        # return
+        if len(codes) > 0:
+            reminder_begin_msg = await bot.send_message(
+                chat_id=channel_id,
+                text="До начала аукциона осталось 10 мин. Успейте сделать ставки!"
+            )
+            db.add_reminders_id(
+                message_id=reminder_begin_msg.message_id,
+                stage="begin"
+            )
+        return
     return
 
 
@@ -419,7 +447,7 @@ async def scheduler():
     aioschedule.every().day.at("12:50").do(reminder) # 12:50
     aioschedule.every().day.at("11:50").do(reminder_beggining) # 11:50
     aioschedule.every().day.at("13:00").do(edit_markups) # 13:00
-    aioschedule.every().day.at("20:50").do(start_auction) # 18:30
+    aioschedule.every().day.at("22:30").do(start_auction) # 18:30
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(1)

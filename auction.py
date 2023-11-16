@@ -26,6 +26,9 @@ from admins_functions.add_admin_handler import add_admin_handler
 from admins_functions.delete_admin_handler import delete_admin_handler
 from admins_functions.delete_partner_handler import delete_partner_handler
 from admins_functions.delete_lot_handler import delete_lot_handler
+from admins_functions.edit_lot_code_handler import edit_lot_code_handler
+from admins_functions.edit_lot_price_handler import edit_lot_price_handler
+
 from requests import request
 import logging
 from datetime import datetime
@@ -159,7 +162,6 @@ class AucBot:
         tg_id = message.from_user.id
         admins = self.db.get_admins()
         blocked_users = self.db.get_blocked_users()
-        id_and_codes = self.db.get_id_and_codes()
 
         if chat_id == -1002127006977:
             if tg_id not in admins:
@@ -167,163 +169,6 @@ class AucBot:
                     chat_id=chat_id,
                     message_id=message.message_id
                 )
-
-        if tg_id in blocked_users and text.lower() != "обжаловать":
-            await self.bot.send_message(
-                chat_id=tg_id,
-                text="К сожалению вы заблокированы"
-            )
-
-        elif tg_id in id_and_codes:
-            if text.lower() == "хорошо, жду":
-                code = id_and_codes[tg_id]
-                lot_id, lot_text, lot_price = self.db.get_selling_lot(code)
-                phone, fullname = self.db.user_by_id(tg_id=tg_id)
-                self.db.add_ransom(tg_id=tg_id, phone=phone, fullname=fullname, code=code, ransom=lot_price)
-                self.db.update_status_sell(code)
-                self.db.delete_now_lots(id_and_codes[tg_id])
-                self.db.delete_id_and_codes(tg_id=tg_id, code=id_and_codes[tg_id])
-                if username is None:
-                    if message.from_user.last_name is None:
-                        username = message.from_user.first_name
-                    else:
-                        username = f"{message.from_user.first_name} {message.from_user.last_name}"
-
-                delete_markup = await self.bot.send_message(
-                    chat_id=tg_id,
-                    text="!",
-                    reply_markup=ReplyKeyboardRemove()
-                )
-
-                await self.bot.delete_message(
-                    chat_id=tg_id,
-                    message_id=delete_markup.message_id
-                )
-                await state.finish()
-
-                user_bids = self.db.get_bids_by_tg_id_and_code(tg_id=tg_id,
-                                                               code=id_and_codes[tg_id])
-                best_bid = max(user_bids, key=lambda x: x[1])
-                await self.bot.send_message(
-                    chat_id=admin_group,
-                    text=f"Победитель аукциона по лоту №{code}\n"
-                         f"Имя: {fullname}\n"
-                         f"Тг: {username}\n"
-                         f"Телефон: +{phone}\n"
-                         f"Итоговая цена: {best_bid[1]}"
-                )
-
-                self.db.delete_id_and_codes(tg_id, id_and_codes[tg_id])
-
-            elif text.lower() == "передумал":
-                phone, fullname = self.db.user_by_id(tg_id=tg_id)
-                places = self.db.get_places_ids(code=id_and_codes[tg_id])
-                this_place = places[tg_id]
-                # self.db.delete_id_and_codes(tg_id, id_and_codes[tg_id])
-                if this_place in [1, 2]:
-                    next_place = self.db.get_tg_id_by_place(code=id_and_codes[tg_id], place=this_place + 1)
-                    # print(f"{next_place}, {this_place}, {admins}")
-                    if next_place is None or next_place[0] in admins:
-                        if next_place is not None and next_place[0] in admins and this_place == 1:
-                            next_place = self.db.get_tg_id_by_place(code=id_and_codes[tg_id], place=3)
-
-                        if next_place is None:
-                            await self.bot.send_message(
-                                chat_id=admin_group,
-                                text=f"Лот №{id_and_codes[tg_id]} не был никем выкуплен и будет выставлен позже"
-                            )
-                            self.db.delete_bids(id_and_codes[tg_id])
-                            self.db.delete_places(id_and_codes[tg_id])
-                            self.db.delete_saved_chats(id_and_codes[tg_id])
-                            repetition_count = self.db.get_repetition(id_and_codes[tg_id])
-
-                            if repetition_count is None:
-                                self.db.update_status_stock(id_and_codes[tg_id])
-                                self.db.add_re_lot(id_and_codes[tg_id])
-                            elif repetition_count in [1, 2]:
-                                self.db.update_status_stock(id_and_codes[tg_id])
-                                self.db.update_repetition(id_and_codes[tg_id])
-                            elif repetition_count == 3:
-                                self.db.delete_lot(id_and_codes[tg_id])
-                                await self.bot.send_message(
-                                    chat_id=admin_group,
-                                    text=f"Лот №{id_and_codes[tg_id]} удалён, так как никто не выкупил его в течении 3 дней."
-                                )
-                            self.db.delete_now_lots(id_and_codes[tg_id])
-
-                        elif next_place is not None:
-                            user_bids = self.db.get_bids_by_tg_id_and_code(tg_id=next_place[0],
-                                                                           code=id_and_codes[tg_id])
-                            best_bid = max(user_bids, key=lambda x: x[1])
-
-                            # first_place = list(best_bid[0])
-                            # first_place[-1] = "*"
-                            # first_place[-2] = "*"
-                            # first_place = "".join(first_place)
-                            #
-                            # lot_id, lot_text, lot_price = self.db.get_selling_lot(id_and_codes[tg_id])
-                            await self.bot.send_message(
-                                chat_id=next_place[0],
-                                text=f"Прошлый победитель отказался выкупать лот.\n"
-                                     f"Поздравляем! Ваша ставка сыграла. ЛОТ №{id_and_codes[tg_id]} продан вам за {best_bid[1]} руб."
-                                     "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
-                                     "где Вы сможете забрать выигранный лот. "
-                                     "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
-                                reply_markup=winner_markup
-                            )
-                            await auc_bot.get_code(tg_id=next_place[0], code=id_and_codes[tg_id])
-
-                    else:
-                        user_bids = self.db.get_bids_by_tg_id_and_code(tg_id=next_place[0], code=id_and_codes[tg_id])
-                        # print(user_bids, next_place[0])
-                        best_bid = max(user_bids, key=lambda x: x[1])
-
-                        first_place = list(best_bid[0])
-                        first_place[-1] = "*"
-                        first_place[-2] = "*"
-                        first_place = "".join(first_place)
-
-                        lot_id, lot_text, lot_price = self.db.get_selling_lot(id_and_codes[tg_id])
-                        await self.bot.send_message(
-                            chat_id=next_place[0],
-                            text=f"Прошлый победитель отказался выкупать лот.\n"
-                                 f"Поздравляем! Ваша ставка сыграла. ЛОТ №{id_and_codes[tg_id]} продан вам за {best_bid[1]} руб."
-                                 "В ближайшее время с Вами свяжется Менеджер Аукциона и согласует условия оплаты, время и место, "
-                                 "где Вы сможете забрать выигранный лот. "
-                                 "Также Вы сможете обсудить условия доставки. Благодарим Вас за участие в Аукционе FRESH",
-                            reply_markup=winner_markup
-                        )
-                        await auc_bot.get_code(tg_id=next_place[0], code=id_and_codes[tg_id])
-
-                await self.bot.send_message(
-                    chat_id=tg_id,
-                    text=decline,
-                    reply_markup=appeal
-                )
-                self.db.block_user(tg_id=tg_id)
-                self.db.add_refusial(tg_id=tg_id, phone=phone, fullname=fullname, code=id_and_codes[tg_id])
-                # self.db.delete_id_and_codes(tg_id, id_and_codes[tg_id])
-
-            elif text.lower() == "обжаловать":
-                code = id_and_codes[tg_id]
-                phone, fullname = self.db.user_by_id(tg_id=tg_id)
-                await self.bot.send_message(
-                    chat_id=admin_group,
-                    text=f"Пользователь ({fullname} {phone}) отказывается выкупить выигранный лот "
-                         f"№{code} по веским причинам и просит связаться с ним для уточнения обстоятельств",
-                    reply_markup=InlineKeyboardMarkup().add(
-                        InlineKeyboardButton(text="✅", callback_data=f"unlockuser_{tg_id}")
-                    ).add(InlineKeyboardButton(
-                        text="⛔️", callback_data=f"blockuser_{tg_id}"
-                    ))
-                )
-                await self.bot.send_message(
-                    chat_id=tg_id,
-                    text="Ожидайте",
-                    reply_markup=ReplyKeyboardRemove()
-                )
-
-
 
     async def get_code(self, tg_id, code):
         self.codes[tg_id] = code
@@ -351,16 +196,12 @@ class AucBot:
         self.dp.register_message_handler(callback=get_avatar_handler, content_types=ContentTypes.ANY, state=RegistrationStates.avatar)
         self.dp.register_callback_query_handler(callback=get_region_handler, state=RegistrationStates.region)
         self.dp.register_message_handler(callback=get_company_handler, content_types=ContentTypes.TEXT, state=RegistrationStates.company)
+        self.dp.register_message_handler(callback=edit_lot_code_handler, content_types=ContentTypes.TEXT,
+                                         state=AdminStates.edit_lot_code)
+        self.dp.register_message_handler(callback=edit_lot_price_handler, content_types=ContentTypes.TEXT,
+                                         state=AdminStates.edit_lot_price)
         self.dp.register_message_handler(callback=self.winner_text_handler, content_types=["text"], state="*")
-
-
-
-        # self.dp.register_message_handler(callback=self.text_handler, content_types=ContentTypes.ANY, state="*")
-
         self.dp.register_callback_query_handler(callback=admin_callback_handler, state="*")
-
-
-        # self.dp.register_callback_query_handler(callback=auc_callback, state="*")
 
     def run(self):
         self.register_handlers()

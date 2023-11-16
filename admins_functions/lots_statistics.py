@@ -26,9 +26,14 @@ async def get_lots_statistics(tg_id):
         name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
         last_price = db.get_last_price(code)
 
+        try:
+            price = int(price)
+        except Exception:
+            price = int(price.split(".")[0])
+
         percentage = 0
         if last_price != 0:
-            percentage = last_price / int(price.split(".")[0]) * 100 - 100
+            percentage = last_price / price * 100 - 100
 
         row += 1
         worksheet.write(row, 0, take_part)

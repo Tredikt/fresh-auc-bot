@@ -75,6 +75,16 @@ admin_markup = InlineKeyboardMarkup()
     )
 ).add(
     InlineKeyboardButton(
+        text="Изменить цену лота",
+        callback_data="edit_lot_price"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Изменить цену на превью",
+        callback_data="edit_lot_price_preview"
+    )
+).add(
+    InlineKeyboardButton(
         text="Добавить партнёра",
         callback_data="add_partner"
     )

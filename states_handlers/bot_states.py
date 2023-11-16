@@ -18,6 +18,8 @@ class AdminStates(StatesGroup):
     delete_partner = State()
     delete_admin = State()
     delete_lot = State()
+    edit_lot_code = State()
+    edit_lot_price = State()
 
 
 class AuctionStates(StatesGroup):

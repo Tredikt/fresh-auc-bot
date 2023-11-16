@@ -37,10 +37,10 @@ def winner_places(code, text=None, winner=None):
         winners = sorted(max_bids, key=lambda x: x[2], reverse=True)
         # print(f"{winners =}")
         if winner:
-            fp = list(winners[0][1])
-            fp[-1] = "*"
-            fp[-2] = "*"
-            first_place = "".join(fp)
+            first_place = list(winners[0][1])
+            for num in range(1, len(first_place) - 1):
+                first_place[-num] = "*"
+            first_place = "".join(first_place)
 
             winner_text = f"🥇 {first_place} {winners[0][2]}\n"
 
@@ -48,18 +48,21 @@ def winner_places(code, text=None, winner=None):
 
         elif text:
             if len(winners) == 3:
-                fp = list(winners[0][1])
-                fp[-1] = "*"
-                fp[-2] = "*"
-                first_place = "".join(fp)
-                sp = list(winners[1][1])
-                sp[-1] = "*"
-                sp[-2] = "*"
-                second_place = "".join(sp)
-                tp = list(winners[2][1])
-                tp[-1] = "*"
-                tp[-2] = "*"
-                third_place = "".join(tp)
+                first_place = list(winners[0][1])
+                for num in range(1, len(first_place) - 1):
+                    first_place[-num] = "*"
+                first_place = "".join(first_place)
+
+                second_place = list(winners[1][1])
+                for num in range(1, len(second_place) - 1):
+                    second_place[-num] = "*"
+                second_place = "".join(second_place)
+
+                third_place = list(winners[2][1])
+                for num in range(1, len(third_place) - 1):
+                    third_place[-num] = "*"
+                third_place = "".join(third_place)
+
                 winner_text = f"🥇 {first_place} {winners[0][2]}\n" \
                                f"🥈 {second_place} {winners[1][2]}\n" \
                                f"🥉 {third_place} {winners[2][2]}\n"
@@ -67,25 +70,26 @@ def winner_places(code, text=None, winner=None):
                 return winner_text
 
             elif len(winners) == 2:
-                fp = list(winners[0][1])
-                fp[-1] = "*"
-                fp[-2] = "*"
-                first_place = "".join(fp)
-                sp = list(winners[1][1])
-                sp[-1] = "*"
-                sp[-2] = "*"
-                second_place = "".join(sp)
+                first_place = list(winners[0][1])
+                for num in range(1, len(first_place) - 1):
+                    first_place[-num] = "*"
+                first_place = "".join(first_place)
+
+                second_place = list(winners[1][1])
+                for num in range(1, len(second_place) - 1):
+                    second_place[-num] = "*"
+                second_place = "".join(second_place)
+
                 winner_text = f"🥇 {first_place} {winners[0][2]}\n" \
                                f"🥈 {second_place} {winners[1][2]}\n"
 
                 return winner_text
 
             elif len(winners) == 1:
-                print(winners)
-                fp = list(winners[0][1])
-                fp[-1] = "*"
-                fp[-2] = "*"
-                first_place = "".join(fp)
+                first_place = list(winners[0][1])
+                for num in range(1, len(first_place) - 1):
+                    first_place[-num] = "*"
+                first_place = "".join(first_place)
 
                 winner_text = f"🥇 {first_place} {winners[0][2]}\n"
 

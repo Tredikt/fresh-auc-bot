@@ -16,6 +16,10 @@ async def delete_lot_handler(message: Message, state: FSMContext):
             chat_id=chat,
             text=f"Лот №{text} был успешно удалён"
         )
+        await bot.delete_message(
+            chat_id=chat,
+            message_id=message.message_id
+        )
 
     else:
         await bot.send_message(
