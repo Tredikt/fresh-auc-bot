@@ -28,6 +28,8 @@ from admins_functions.delete_partner_handler import delete_partner_handler
 from admins_functions.delete_lot_handler import delete_lot_handler
 from admins_functions.edit_lot_code_handler import edit_lot_code_handler
 from admins_functions.edit_lot_price_handler import edit_lot_price_handler
+from admins_functions.add_lots_for_auc_handler import add_lots_for_auc_handler
+from admins_functions.edit_time_handler import edit_time_handler
 
 from requests import request
 import logging
@@ -66,7 +68,7 @@ class AucBot:
         elif text[7:11] == "save":
             code = text.split("_")[1]
             lot_id, lot_text, lot_price = self.db.get_selling_lot(code)
-            name, model, code, storage, season, tires, disks, price, photo, status = self.db.get_lot(code)
+            name, model, code, storage, season, tires, disks, price, photo, status, google_disk, stage = self.db.get_lot(code)
 
             try:
                 if int(tires[-2:]) >= 18:
@@ -146,16 +148,16 @@ class AucBot:
         tg_id = message.from_user.id
 
         if tg_id in admins:
-            link = self.bot.export_chat_invite_link(
+            link = await self.bot.export_chat_invite_link(
                 chat_id=channel_id
             )
-
             await self.bot.send_message(
                 chat_id=tg_id,
                 text=f"Ссылка для входа на канал: {link}"
             )
 
     async def winner_text_handler(self, message, state):
+        print(message)
         chat_id = message.chat.id
         text = message.text
         username = message.from_user.username
@@ -177,6 +179,9 @@ class AucBot:
         self.dp.register_message_handler(callback=admin_handler, commands=["admin"], state="*")
         self.dp.register_message_handler(callback=self.start_handler, commands=["start"], state="*")
         self.dp.register_message_handler(callback=self.get_rules, commands=["rules"], state="*")
+        self.dp.register_message_handler(callback=self.get_link, commands=["get_link"], state="*")
+        self.dp.register_message_handler(callback=add_lots_for_auc_handler, state=AdminStates.add_lots_for_auc, content_types=["text"])
+        self.dp.register_message_handler(callback=edit_time_handler, state=AdminStates.edit_time, content_types=["text"])
         self.dp.register_message_handler(callback=add_partner_handler, state=AdminStates.add_partner,
                                          content_types=["text", "contact"])
 
@@ -200,7 +205,7 @@ class AucBot:
                                          state=AdminStates.edit_lot_code)
         self.dp.register_message_handler(callback=edit_lot_price_handler, content_types=ContentTypes.TEXT,
                                          state=AdminStates.edit_lot_price)
-        self.dp.register_message_handler(callback=self.winner_text_handler, content_types=["text"], state="*")
+        self.dp.register_message_handler(callback=self.winner_text_handler, content_types=["video"], state="*")
         self.dp.register_callback_query_handler(callback=admin_callback_handler, state="*")
 
     def run(self):

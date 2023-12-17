@@ -20,6 +20,8 @@ class AdminStates(StatesGroup):
     delete_lot = State()
     edit_lot_code = State()
     edit_lot_price = State()
+    add_lots_for_auc = State()
+    edit_time = State()
 
 
 class AuctionStates(StatesGroup):

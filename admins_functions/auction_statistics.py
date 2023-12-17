@@ -35,7 +35,7 @@ async def get_auction_statistics(tg_id):
 
     for code in codes:
         count += 1
-        name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+        name, model, code, storage, season, tires, disks, price, photo, status, google_disk, stage = db.get_lot(code)
         last_price = db.get_last_price(code)
         percentage = 0
 

@@ -52,7 +52,9 @@ class Database:
                 disks TEXT,
                 price TEXT,
                 photo BLOB,
-                status TEXT
+                status TEXT,
+                google_link TEXT,
+                stage TEXT
             )
             """
         )
@@ -151,7 +153,39 @@ class Database:
             """
         )
 
+        self.cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS auction_time(
+                time TEXT,
+                number INTEGER PRIMARY KEY
+            )
+            """
+        )
+
         self.conn.commit()
+
+    def get_auction_time(self, index):
+        start_auc = self.cur.execute(
+            f"""
+            SELECT time FROM auction_time
+            WHERE number={index}
+            """
+        ).fetchone()
+
+        return start_auc[0]
+
+    def update_time_auction(self, time, index):
+        self.cur.execute(
+            f"""
+            INSERT OR REPLACE INTO auction_time
+            (time, number)
+            VALUES
+            (?, ?)
+            """,
+            (time, index)
+        )
+        self.conn.commit()
+
 
     def get_reminder_id(self, stage):
         message_id = self.cur.execute(
@@ -192,7 +226,7 @@ class Database:
         self.cur.execute(
             f"""
             DELETE FROM bids
-            WHERE code='{code}'
+            WHERE code='{code}';
             """
         )
         self.conn.commit()
@@ -201,7 +235,7 @@ class Database:
         self.cur.execute(
             f"""
             DELETE FROM places
-            WHERE code='{code}'
+            WHERE code='{code}';
             """
         )
         self.conn.commit()
@@ -210,7 +244,7 @@ class Database:
         self.cur.execute(
             f"""
             DELETE FROM saved_lots
-            WHERE code='{code}'
+            WHERE code='{code}';
             """
         )
         self.conn.commit()
@@ -488,9 +522,9 @@ class Database:
     def delete_now_lots(self, code):
         self.cur.execute(
             f"""
-                    DELETE FROM now_lots
-                    WHERE code='{code}'
-                    """
+            DELETE FROM now_lots
+            WHERE code='{code}'
+            """
         )
         self.conn.commit()
 
@@ -544,6 +578,14 @@ class Database:
         ids = [elem[0] for elem in ids]
         return ids
 
+    def delete_relots(self, code):
+        self.cur.execute(
+            f"""
+            DELETE FROM re_lots
+            WHERE code='{code}'
+            """
+        )
+        self.conn.commit()
 
     def get_bids(self):
         bids = self.cur.execute(
@@ -883,15 +925,15 @@ class Database:
         phones = [elem[0] for elem in phones]
         return phones
 
-    def add_lot(self, name, model, code, storage, season, tires, disks, price, photo):
+    def add_lot(self, name, model, code, storage, season, tires, disks, price, photo, google_link, stage):
         status = "stock"
-        info = (name, model, code, storage, season, tires, disks, price, photo, status)
+        info = (name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage)
         self.cur.execute(
             """
             INSERT OR REPLACE INTO lots
-            (name, model, code, storage, season, tires, disks, price, photo, status)
+            (name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage)
             VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             info
         )
@@ -934,6 +976,19 @@ class Database:
         # print(lot)
         return lot
 
+    def get_waiting_lots(self):
+        waiting_codes = self.cur.execute(
+            f"""
+            SELECT code FROM lots
+            WHERE status='waiting'
+            """
+        ).fetchall()
+
+        if waiting_codes is None:
+            return []
+        waiting_codes = [elem[0] for elem in waiting_codes]
+        return waiting_codes
+
     def update_price(self, code, price):
         self.cur.execute(
             f"""
@@ -948,11 +1003,13 @@ class Database:
         self.cur.execute(
             f"""
             UPDATE now_lots
-            SET lot_price={new_lot_price}
-            SET lot_text='{new_lot_text}'
-            WHERE code='{code}'
-            """
+            SET lot_price=?,
+            lot_text=?
+            WHERE code=?
+            """,
+            (new_lot_price, new_lot_text, code)
         )
+        self.conn.commit()
     def add_auc_lot(self, lot_id, lot_text, lot_price, code):
         self.cur.execute(
             """
@@ -995,6 +1052,26 @@ class Database:
         )
         self.conn.commit()
 
+    def update_status_draw(self, code):
+        self.cur.execute(
+            f"""
+            UPDATE lots
+            SET status="draw"
+            WHERE code='{code}'
+            """
+        )
+        self.conn.commit()
+
+    def update_status_waiting(self, code):
+        self.cur.execute(
+            f"""
+            UPDATE lots
+            SET status="waiting"
+            WHERE code='{code}'
+            """
+        )
+        self.conn.commit()
+
     def update_status_deleted(self, code):
         self.cur.execute(
             f"""
@@ -1028,12 +1105,11 @@ class Database:
         minutes, hours = time.split("_")
         return minutes, hours
 
-    def get_five_lots(self):
+    def get_draw_lots(self):
         three_lots = self.cur.execute(
             f"""
-            SELECT name, model, code, storage, season, tires, disks, price, photo, status FROM lots
-            WHERE status="stock"
-            LIMIT 5
+            SELECT name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage FROM lots
+            WHERE status="draw"
             """
         ).fetchall()
 

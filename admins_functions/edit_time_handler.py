@@ -1,13 +1,12 @@
 from get_bot_and_db import get_bot_and_db
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.dispatcher.dispatcher import FSMContext
-from .edit_lot_and_lot_price import edit_lot_and_lot_price
 
 
-async def edit_lot_price_handler(message: Message, state: FSMContext):
+async def edit_time_handler(message: Message, state: FSMContext):
     bot, db = get_bot_and_db()
     chat = message.chat.id
-    new_price = message.text
+    text = message.text
 
     try:
         await bot.edit_message_reply_markup(
@@ -18,29 +17,25 @@ async def edit_lot_price_handler(message: Message, state: FSMContext):
     except Exception:
         pass
 
-    try:
+    if len(text) == 5 and ":" in text:
         async with state.proxy() as data:
-            code = data["code"]
-            mode = data.get("mode")
+            index = data["index"]
 
-        new_price = int(new_price)
-        if mode == "preview":
-            await edit_lot_and_lot_price(code, new_price)
-        db.edit_lot_price(code=code, new_price=new_price)
+        db.update_time_auction(time=text, index=index)
 
         await bot.send_message(
             chat_id=chat,
-            text=f"Для лота №{code} успешно установлена цена {new_price}",
+            text=f"Время успешно установлено",
             reply_markup=InlineKeyboardMarkup().add(
                 InlineKeyboardButton(text="К админке", callback_data="admin_back")
             )
         )
         await state.finish()
 
-    except ValueError:
+    else:
         await bot.send_message(
             chat_id=chat,
-            text="Сообщением должно быть целое число, попробуйте снова, либо вернитесь в админку",
+            text="Сообщение должно быть вида 10:24",
             reply_markup=InlineKeyboardMarkup().add(
                 InlineKeyboardButton(text="К админке", callback_data="admin_back")
             )

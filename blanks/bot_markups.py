@@ -70,6 +70,11 @@ admin_markup = InlineKeyboardMarkup()
     )
 ).add(
     InlineKeyboardButton(
+        text="Добавить лоты на аукцион",
+        callback_data="add_lots_for_auc"
+    )
+).add(
+    InlineKeyboardButton(
         text="Удалить лот из базы",
         callback_data="delete_lot_admin"
     )
@@ -82,6 +87,11 @@ admin_markup = InlineKeyboardMarkup()
     InlineKeyboardButton(
         text="Изменить цену на превью",
         callback_data="edit_lot_price_preview"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Изменить время",
+        callback_data="time_markup"
     )
 ).add(
     InlineKeyboardButton(
@@ -119,6 +129,38 @@ admin_markup = InlineKeyboardMarkup()
         callback_data="statistics_auction"
     )
 ))
+
+time_markup = InlineKeyboardMarkup().add(
+    InlineKeyboardButton(
+        text="Изменить публикацию лотов",
+        callback_data="edit_time_1"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Изменить напоминание о начале",
+        callback_data="edit_time_2"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Изменить начало аукциона",
+        callback_data="edit_time_3"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Изменить напоминание о конце",
+        callback_data="edit_time_4"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Изменить конец аукциона",
+        callback_data="edit_time_5"
+    )
+).add(
+    InlineKeyboardButton(
+        text="Назад",
+        callback_data="admin_back"
+    )
+)
 
 admin_back = InlineKeyboardMarkup()
 admin_back.add(InlineKeyboardButton(

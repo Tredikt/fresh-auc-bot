@@ -8,57 +8,64 @@ from datetime import datetime
 from config import channel_id, admin_group
 
 
+bot, db = get_bot_and_db()
+
+
 async def start_auction():
     weekday = datetime.now().weekday() + 1
     if weekday in [1, 2, 3, 4, 5]:
         bot, db = get_bot_and_db()
-        five_lots = db.get_five_lots()
         relots_codes = db.get_re_lot()
         all_codes = db.get_all_codes()
 
-        lots_for_auc = []
-        for num, code in enumerate(relots_codes):
-            # if num == 5:
-            #     break
-
-            lots_for_auc.append(
-                db.get_lot(code)
-            )
-
-        if len(lots_for_auc) < 50:
-            for num, elem in enumerate(five_lots):
-                if 50 - len(lots_for_auc) == 0:
-                    break
-                if elem not in lots_for_auc:
-                    lots_for_auc.append(elem)
+        # lots_for_auc = []
+        # for num, code in enumerate(relots_codes):
+        #     # if num == 5:
+        #     #     break
+        #
+        #     lots_for_auc.append(
+        #         db.get_lot(code)
+        #     )
+        #
+        # if len(lots_for_auc) < 50:
+        #     for num, elem in enumerate(five_lots):
+        #         if 50 - len(lots_for_auc) == 0:
+        #             break
+        #         if elem not in lots_for_auc:
+        #             lots_for_auc.append(elem)
+        lots_for_auc = db.get_draw_lots()
 
         for elem in lots_for_auc:
-            name, model, code, storage, season, tires, disks, price, photo, status = elem
+            name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage = elem
+            if google_link is None:
+                google_link = ""
+            else:
+                google_link = "✅" + google_link + "\n\nПо ссылке подробные фотографии лота\n\n"
 
             if disks is not None and disks.lower() not in ["хорошее", "плохое", "среднее", "отличное", "мало шипов. плохое"]:
                 text = f"🔥 СТАРТ {price} ₽🔥\n\n" \
                        f"✅ {model}\n" \
                        f"✅ Колёса {disks}\n" \
                        f"✅ {tires}\n" \
-                       f"✅ {season}\n" \
-                       f"🌍 Место склада {storage}\n\n" \
+                       f"✅ Состояние: {stage}\n" \
+                       f"✅ {season}\n" + google_link + f"🌍 Место склада {storage}\n\n" \
                         f"❗️ Продолжительность аукциона - 1 час ❗️ \n\n" \
-                        f"Администратор аукциона: @akulovrus\n\n" \
+                        f"Администратор аукциона: @Ataev_Sergey\n\n" \
                         f"📌 Лот № {code}\n"
             else:
                 text = f"🔥 СТАРТ {price} ₽🔥\n\n" \
                        f"✅ {model}\n" \
                        f"✅ Шины {tires}\n" \
-                       f"✅ {season}\n" \
-                       f"🌍 Место склада {storage}\n\n" \
+                       f"✅ Состояние: {stage}\n" \
+                       f"✅ {season}\n" + google_link + f"🌍 Место склада {storage}\n\n" \
                        f"❗️ Продолжительность аукциона - 1 час ❗️\n\n" \
-                       f"Администратор аукциона: @akulovrus\n\n" \
+                       f"Администратор аукциона: @Ataev_Sergey\n\n" \
                        f"📌 Лот № {code}\n"
             db.update_status_auction(code)
 
             lot_message = f"Данный лот будет разыгран завтра в 12:00!!!\n"
-            if datetime.now().weekday() == 5:
-                lot_message = "Добрый день! Данный лот будет разыгран в понедельник в 12:00\n"
+            if datetime.now().weekday() + 1 == 5:
+                lot_message = "Добрый вечер! Данный лот будет разыгран в понедельник в 12:00\n"
 
             auc_message = await bot.send_photo(
                 chat_id=channel_id,
@@ -68,7 +75,7 @@ async def start_auction():
             )
 
             db.add_auc_lot(lot_id=auc_message.message_id, lot_text=text, lot_price=price, code=code)
-            # await asyncio.sleep(7 * 60)
+            await asyncio.sleep(5 * 60)
 
 
 async def edit_lots():
@@ -87,48 +94,62 @@ async def edit_lots():
         except Exception:
             pass
 
+        waiting_codes = db.get_waiting_lots()
         codes = db.get_lots_codes()
         for code in codes:
-            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
-            lot_id, lot_text, lot_price = db.get_selling_lot(code)
+            if code not in waiting_codes:
+                # print(code)
+                name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage = db.get_lot(code)
+                lot_id, lot_text, lot_price = db.get_selling_lot(code)
 
-            try:
-                if int(tires[-2:]) >= 18:
-                    auc_price = "+ 500р."
-                else:
+                try:
+                    if int(tires[-2:]) >= 18:
+                        auc_price = "+ 500р."
+                    else:
+                        auc_price = "+ 250р."
+                except ValueError:
                     auc_price = "+ 250р."
-            except ValueError:
-                auc_price = "+ 250р."
-
-            bot_info = await bot.me
-            try:
-                await bot.edit_message_caption(
-                    chat_id=channel_id,
-                    message_id=lot_id,
-                    caption=lot_text + f"💰 ТЕКУЩАЯ ЦЕНА: {lot_price}",
-                    reply_markup=InlineKeyboardMarkup().add(
-                        InlineKeyboardButton(
-                            text=auc_price, url=f"https://t.me/{bot_info.username}?start=raiseprice_{code}"
-                        )
-                    ).add(
-                        InlineKeyboardButton(
-                            text="💾", url=f"https://t.me/{bot_info.username}?start=save_{code}"
-                        ),
-                        InlineKeyboardButton(
-                            text="⏳", callback_data=f"time_{code}"
-                        ),
-                        InlineKeyboardButton(
-                            text="⚠️", callback_data="warning"
-                        ),
-                        InlineKeyboardButton(
-                            text="БОТ", url=f"https://t.me/{bot_info.username}"
+                bot_info = await bot.me
+                try:
+                    await bot.edit_message_reply_markup(
+                        chat_id=channel_id,
+                        message_id=lot_id,
+                        reply_markup=InlineKeyboardMarkup().add(
+                            InlineKeyboardButton(
+                                text=auc_price, url=f"https://t.me/{bot_info.username}?start=raiseprice_{code}"
+                            )
+                        ).add(
+                            InlineKeyboardButton(
+                                text="💾", url=f"https://t.me/{bot_info.username}?start=save_{code}"
+                            ),
+                            InlineKeyboardButton(
+                                text="⏳", callback_data=f"time_{code}"
+                            ),
+                            InlineKeyboardButton(
+                                text="⚠️", callback_data="warning"
+                            ),
+                            InlineKeyboardButton(
+                                text="БОТ", url=f"https://t.me/{bot_info.username}"
+                            )
                         )
                     )
-                )
-            except aiogram.exceptions.MessageIdInvalid:
-                continue
-            except aiogram.exceptions.MessageNotModified:
-                continue
+                except:
+                    pass
+                #
+                # try:
+                #     await bot.edit_message_caption(
+                #         chat_id=channel_id,
+                #         message_id=lot_id,
+                #         caption=lot_text + f"💰 ТЕКУЩАЯ ЦЕНА: {lot_price}",
+                #     )
+                # except aiogram.exceptions.MessageIdInvalid:
+                #     continue
+                # except aiogram.exceptions.MessageNotModified:
+                #     continue
+                # except Exception:
+                #     pass
+
+
     return
 
 
@@ -149,7 +170,7 @@ async def edit_markups():
             pass
         codes = db.get_lots_codes()
         for code in codes:
-            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+            name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage = db.get_lot(code)
             lot_id, lot_text, lot_price = db.get_selling_lot(code)
             winners = winner_places(code, winner=True)
 
@@ -184,7 +205,7 @@ async def edit_markups():
                         db.delete_places(code)
                         saved_chats = db.get_saved_lots(code=code)
 
-                        name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+                        name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage = db.get_lot(code)
                         try:
                             price = int(price)
                         except ValueError:
@@ -232,7 +253,7 @@ async def edit_markups():
                             except aiogram.exceptions.MessageNotModified:
                                 pass
 
-                            name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+                            name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage = db.get_lot(code)
                             try:
                                 price = int(price)
                             except ValueError:
@@ -256,7 +277,7 @@ async def edit_markups():
                         saved_chats = db.get_saved_lots(code=code)
                         if len(saved_chats) >= 0:
                             saved_chats.insert(0, (lot_id, channel_id))
-
+                        db.update_status_waiting(code=code)
                         await bot.send_message(
                             chat_id=next_place[0],
                             text=f"Прошлый победитель отказался выкупать лот.\n"
@@ -298,6 +319,7 @@ async def edit_markups():
                     phone, fullname = db.user_by_id(tg_id=winner)
                     db.add_winner(tg_id=winner, phone=phone, fullname=fullname, code=code)
                     saved_chats = db.get_saved_lots(code=code)
+                    db.update_status_waiting(code=code)
 
                     await bot.send_message(
                         chat_id=winner,
@@ -322,6 +344,7 @@ async def edit_markups():
                         saved_chats.insert(0, (lot_id, channel_id))
 
                     winner = winner_places(code, winner=True)
+                    print(winner)
                     for elem in saved_chats:
                         lot_id, chat_id = elem
                         try:
@@ -351,7 +374,7 @@ async def edit_markups():
 
                 db.delete_now_lots(code)
                 saved_chats = db.get_saved_lots(code=code)
-                name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+                name, model, code, storage, season, tires, disks, price, photo, status, google_link, stage = db.get_lot(code)
                 try:
                     price = int(price)
                 except ValueError:
@@ -447,10 +470,11 @@ async def scheduler():
     aioschedule.every().day.at("12:50").do(reminder) # 12:50
     aioschedule.every().day.at("11:50").do(reminder_beggining) # 11:50
     aioschedule.every().day.at("13:00").do(edit_markups) # 13:00
-    aioschedule.every().day.at("22:30").do(start_auction) # 18:30
+    aioschedule.every().day.at("20:00").do(start_auction)
+
     while True:
         await aioschedule.run_pending()
-        await asyncio.sleep(1)
+        await asyncio.sleep(60)
 
 
 async def main_schedule():

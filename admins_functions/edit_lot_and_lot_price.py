@@ -4,14 +4,15 @@ from config import channel_id
 
 async def edit_lot_and_lot_price(code, new_price):
     bot, db = get_bot_and_db()
-    name, model, code, storage, season, tires, disks, price, photo, status = db.get_lot(code)
+    name, model, code, storage, season, tires, disks, price, photo, status, google_disk, stage = db.get_lot(code)
     lot_id, lot_text, lot_price = db.get_selling_lot(code)
     new_lot_text = lot_text.replace(str(price), str(new_price))
 
-    db.update_now_lot_price_and_text(new_lot_price=new_lot_text, new_lot_text=new_lot_text, code=code)
+    db.update_now_lot_price_and_text(new_lot_price=new_price, new_lot_text=new_lot_text, code=code)
 
+    new_lot_text = new_lot_text.replace(str(price), str(new_price))
     await bot.edit_message_caption(
         chat_id=channel_id,
         message_id=lot_id,
-        caption=new_lot_text
+        caption=new_lot_text + f"💰 ТЕКУЩАЯ ЦЕНА: {new_price}"
     )
