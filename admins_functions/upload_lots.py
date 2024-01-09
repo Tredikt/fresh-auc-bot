@@ -55,7 +55,7 @@ async def upload_lots(chat: int):
                     for num in range(3, 11):
                         try:
                             if attributes[num]["name"] == "Склад":
-                                storage = attributes[num]["value"]
+                                storage = attributes[num]["value"]["name"]
                             elif attributes[num]["name"] == "Ссылка на фотографии":
                                 google_disk_link = attributes[num]["value"]
                             elif attributes[num]["name"] == "Состояние":
@@ -75,7 +75,7 @@ async def upload_lots(chat: int):
                     if len(photo_download["rows"]) > 0:
                         photo = request("GET", photo_download["rows"][0]["meta"]["downloadHref"],
                                         headers={"Authorization": f"Bearer {access_token}"}).content
-                        print(code, storage, status, price)
+                        # print(code, storage, status, price)
                         if (status.lower() in ["принят", "подтвержден",
                                                "подтверждён", "принято",
                                                "подтверждено"] and price is not None and price > 0 and

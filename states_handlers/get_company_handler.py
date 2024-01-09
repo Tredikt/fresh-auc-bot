@@ -4,7 +4,7 @@ from blanks.bot_texts import accept_company, decline_company
 from blanks.bot_markups import remove_markup
 
 from states_handlers.bot_states import RegistrationStates
-from config import channel_id
+from config import channel_id, admin_group
 
 
 async def get_company_handler(message, state):
@@ -49,6 +49,11 @@ async def get_company_handler(message, state):
             text="Вы добавлены в закрытый канал FRESH — Шинный аукцион!\n"
                  "Переходите по ссылке, регистрируйтесь и делайте свои ставки. Приятных торгов!\n" + str(link) + "\nТак же прочитайте правила по команде /rules",
             reply_markup=remove_markup
+        )
+
+        await bot.send_message(
+            chat_id=admin_group,
+            text=f"{fullname} успешно зарегистрировался в боте"
         )
 
         await state.finish()

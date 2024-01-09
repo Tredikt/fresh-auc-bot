@@ -470,7 +470,7 @@ async def scheduler():
     aioschedule.every().day.at("12:50").do(reminder) # 12:50
     aioschedule.every().day.at("11:50").do(reminder_beggining) # 11:50
     aioschedule.every().day.at("13:00").do(edit_markups) # 13:00
-    aioschedule.every().day.at("20:00").do(start_auction)
+    aioschedule.every().day.at("18:20").do(start_auction)
 
     while True:
         await aioschedule.run_pending()
