@@ -9,7 +9,6 @@ async def get_contact_handler(message, state):
     contact = message.contact.phone_number
     bot, db = get_bot_and_db()
 
-    print(message)
     contact = str(contact)
     if contact[0] == "8":
         contact = contact.replace("8", "7", 1)

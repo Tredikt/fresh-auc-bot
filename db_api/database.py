@@ -943,7 +943,7 @@ class Database:
     def get_all_codes(self):
         codes = self.cur.execute(
             """
-            SELECT code FROM lots
+            SELECT code FROM lots   
             """
         ).fetchall()
 
@@ -996,6 +996,16 @@ class Database:
             SET lot_price=lot_price + {price}
             WHERE code='{code}'
             """
+        )
+        self.conn.commit()
+
+    def update_uploaded_price(self, code, price):
+        self.cur.execute(
+            f"""
+               UPDATE now_lots
+               SET lot_price={price}
+               WHERE code='{code}'
+               """
         )
         self.conn.commit()
 

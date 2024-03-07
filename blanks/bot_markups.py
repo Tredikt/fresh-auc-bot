@@ -90,8 +90,8 @@ admin_markup = InlineKeyboardMarkup()
     )
 ).add(
     InlineKeyboardButton(
-        text="Изменить время",
-        callback_data="time_markup"
+        text="Запустить аукцион",
+        callback_data="start_auc"
     )
 ).add(
     InlineKeyboardButton(

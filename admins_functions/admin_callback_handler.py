@@ -5,6 +5,7 @@ from blanks.bot_markups import admin_back, admin_markup, time_markup
 from datetime import datetime
 from admins_functions.winner_places import winner_places
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from auction_funnel import start_auction
 
 from blanks.bot_texts import decline
 from .users_statistics import get_users_statistics
@@ -17,12 +18,11 @@ import aiogram
 
 async def admin_callback_handler(call, state):
     # print(call.message.reply_markup.inline_keyboard[0][0].text)
-    print("this is")
     chat = call.message.chat.id
     m_id = call.message.message_id
     bot, db = get_bot_and_db()
     callback = call.data
-    print(callback)
+
     tg_id = None
     if call.message.chat.type == "private":
         tg_id = call.message.chat.id
@@ -34,7 +34,6 @@ async def admin_callback_handler(call, state):
             username = call["from"]["first_name"]
         else:
             username = call["from"]["first_name"] + call["from"]["last_name"]
-    print(call)
 
     blocked_users = db.get_blocked_users()
     users = db.get_users_ids()
@@ -522,6 +521,14 @@ async def admin_callback_handler(call, state):
                 text="Управление временем",
                 reply_markup=time_markup
             )
+
+        elif callback == "start_auc":
+            await bot.send_message(
+                chat_id=chat,
+                text="Аукцион успешно запущен"
+            )
+
+            await start_auction(manually=True)
 
         elif callback[:9] == "edit_time":
             await bot.delete_message(

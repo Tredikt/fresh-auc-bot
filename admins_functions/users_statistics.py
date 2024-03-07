@@ -1,3 +1,7 @@
+"""
+Выгрузка данных об пользователях в Excel файл
+"""
+
 from get_bot_and_db import get_bot_and_db
 from xlsxwriter import Workbook
 import os

@@ -53,6 +53,7 @@ class AucBot:
         admins = self.db.get_admins()
 
         text = message.text
+        print(message)
         if text[7:17] == "raiseprice":
             code = text.split("_")[1]
             await self.bot.send_message(

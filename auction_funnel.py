@@ -1,3 +1,10 @@
+"""
+При запуске данного файла aioschedule проверяет время и запускает различные функции:
+1) Запуск Аукциона
+2) Окончание Аукциона
+3) Напомнинание об Аукционе
+"""
+
 import aioschedule
 from get_bot_and_db import get_bot_and_db
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -11,28 +18,13 @@ from config import channel_id, admin_group
 bot, db = get_bot_and_db()
 
 
-async def start_auction():
+async def start_auction(manually=None):
     weekday = datetime.now().weekday() + 1
-    if weekday in [1, 2, 3, 4, 5]:
+    if weekday in [1, 2, 3, 4, 5] or manually:
         bot, db = get_bot_and_db()
         relots_codes = db.get_re_lot()
         all_codes = db.get_all_codes()
 
-        # lots_for_auc = []
-        # for num, code in enumerate(relots_codes):
-        #     # if num == 5:
-        #     #     break
-        #
-        #     lots_for_auc.append(
-        #         db.get_lot(code)
-        #     )
-        #
-        # if len(lots_for_auc) < 50:
-        #     for num, elem in enumerate(five_lots):
-        #         if 50 - len(lots_for_auc) == 0:
-        #             break
-        #         if elem not in lots_for_auc:
-        #             lots_for_auc.append(elem)
         lots_for_auc = db.get_draw_lots()
 
         for elem in lots_for_auc:
@@ -63,7 +55,17 @@ async def start_auction():
                        f"📌 Лот № {code}\n"
             db.update_status_auction(code)
 
-            lot_message = f"Данный лот будет разыгран завтра в 12:00!!!\n"
+            month = datetime.now().month
+            day = datetime.now().day
+            if len(str(month)) < 2:
+                month = "0" + str(month)
+            if 1100 <= datetime.now().minute + datetime.now().hour * 60 <= 1440:
+                day += 1
+
+            if len(str(day)) < 2:
+                day = "0" + str(day)
+                
+            lot_message = f"Данный лот будет разыгран {day}.{month} в 12:00!!!\n"
             if datetime.now().weekday() + 1 == 5:
                 lot_message = "Добрый вечер! Данный лот будет разыгран в понедельник в 12:00\n"
 
